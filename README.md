@@ -1,6 +1,7 @@
 # preferhdr
 
-Parse and build HTTP Prefer and Preference-Applied headers per RFC 7240, typed and zero-dependency.
+Parse, validate and build the HTTP `Prefer` and `Preference-Applied` headers (RFC 7240),
+typed and zero-dependency.
 
 ## Install
 
@@ -8,51 +9,142 @@ Parse and build HTTP Prefer and Preference-Applied headers per RFC 7240, typed a
 pip install preferhdr
 ```
 
-## Usage
+## Reading a request
+
+`parse` takes the field value, or several values when the request carries several
+`Prefer` lines, and answers the questions a server asks about the registered preferences:
 
 ```python
-from preferhdr import Preference, build, parse
+from preferhdr import parse
 
-prefs = parse("respond-async, wait=10, return=minimal")
-# [Preference(token='respond-async', value=None, params={}),
-#  Preference(token='wait', value='10', params={}),
-#  Preference(token='return', value='minimal', params={})]
-
-prefs[0].token          # 'respond-async'
-prefs[1].value          # '10'
-
-# Preference names are case-insensitive, so they come back lower-cased.
-# Values are kept verbatim; a bare token has value None.
-parse("Handling=strict")  # [Preference(token='handling', value='strict', params={})]
-
-# Parameters ride along a preference and may themselves be bare or quoted.
-parse('foo=bar; baz=qux; lenient')
-# [Preference(token='foo', value='bar', params={'baz': 'qux', 'lenient': None})]
-
-# Build a header value back. Values that are not plain tokens get quoted.
-build([Preference("return", "minimal"), Preference("wait", "10")])
-# 'return=minimal, wait=10'
-
-build([Preference("foo", "a, b")])
-# 'foo="a, b"'
+prefs = parse(["respond-async, wait=10", 'return=minimal; foo="some parameter"'])
+print(prefs.respond_async, prefs.wait, prefs.return_, prefs.handling)
+# True 10 minimal None
+print(prefs.get("return"))
+# return=minimal; foo="some parameter"
+print("Wait" in prefs, prefs.get("return").params["foo"])
+# True some parameter
 ```
 
-The same functions cover the `Preference-Applied` response header, which shares the
-grammar of a comma-separated list of preferences.
+Names are case-insensitive, so they come back lower-cased; values are kept verbatim, and
+an empty value (`foo=""`) is the same as no value. When a preference is repeated, only the
+first one counts, as RFC 7240 asks:
+
+```python
+from preferhdr import parse
+
+print(list(parse('Return=minimal, return=representation, foo=""')))
+# [Preference(token='return', value='minimal', params={}), Preference(token='foo', value=None, params={})]
+```
+
+The default parser is tolerant, as a server must be: it accepts whitespace around `=` and
+empty list elements, reads CR, LF and NUL as spaces, and skips a malformed member (or a
+malformed parameter) while keeping the rest. It never raises `PreferError`:
+
+```python
+from preferhdr import parse
+
+print(list(parse("wait = 5, bad member, , handling=lenient; x=@")))
+# [Preference(token='wait', value='5', params={}), Preference(token='handling', value='lenient', params={})]
+```
+
+## Validating a value
+
+`strict=True` checks the grammar a sender must follow (RFC 7240 with erratum 4439, RFC
+9110 lists) and reports the first problem with its position:
+
+```python
+from preferhdr import PreferError, parse
+
+try:
+    parse(["respond-async", "wait =10"], strict=True)
+except PreferError as error:
+    print(error.message, error.position, error.field)
+# whitespace before '=' 4 1
+```
+
+## Answering
+
+`Preferences.applied` keeps the preferences a server honoured, without their parameters,
+ready for `Preference-Applied`. `build` writes any list of preferences, and `vary` adds
+`Prefer` to the `Vary` header, which RFC 7240 requires whenever a preference can change
+what a cache may reuse:
+
+```python
+from preferhdr import Preference, build, parse, vary
+
+prefs = parse("return=representation; x=1, respond-async")
+print(build(prefs.applied("return"), applied=True))
+# return=representation
+print(build([Preference("return", "minimal"), Preference("note", "a, b")]))
+# return=minimal, note="a, b"
+print(vary("Accept-Encoding"))
+# Accept-Encoding, Prefer
+```
+
+Every name and value is checked when the `Preference` is made, so the builder can never
+split a header:
+
+```python
+from preferhdr import Preference, PreferError
+
+try:
+    Preference("return", "minimal\r\nSet-Cookie: a=1")
+except PreferError as error:
+    print(error)
+# value of 'return' holds U+000D, which a header field cannot carry
+```
+
+## Command line
+
+`preferhdr` checks a value (or the `Prefer` lines of a request on stdin, as copied from a
+log) and prints one preference per line, exiting with 1 when the value breaks the grammar:
+
+```
+$ preferhdr 'Respond-Async, wait=10, return=minimal; foo="some parameter"'
+respond-async
+wait=10
+return=minimal; foo="some parameter"
+$ preferhdr 'wait = 10'
+wait=10
+invalid: whitespace before '=' at position 4 of field 0
+```
+
+`--applied` reads `Preference-Applied` instead, `--json` prints JSON.
+
+## API
+
+| Name | What it does |
+| --- | --- |
+| `parse(value, *, strict=False, applied=False)` | Field value or values to `Preferences`. |
+| `Preferences` | Immutable sequence: `get`, `in`, `respond_async`, `return_`, `wait`, `handling`, `applied(*names)`. |
+| `Preference(token, value=None, params={})` | One validated, hashable preference; `str()` writes it. |
+| `build(prefs, *, applied=False)` | Preferences to one field value. |
+| `vary(current=None)` | A `Vary` value that lists `Prefer` once. |
+| `PreferError` | `ValueError` with `message`, `position` and `field`. |
+
+## Where the RFC leaves room
+
+- `return=minimal, return=representation`: section 4.2 says such a request may be treated
+  as if neither was sent; section 2 says the first instance is the one considered. This
+  library applies the first-wins rule, so `return_` is `"minimal"`.
+- `Prefer: Lenient` names a preference called `lenient`, not `handling=lenient`
+  (erratum 4955).
+- A repeated parameter keeps its first value, like a repeated preference.
+- `respond_async` is `True` only for the bare preference; `return_` and `handling` only
+  for the values the RFC defines (values are case-sensitive).
+- `wait` must be ASCII digits; a value longer than 100 digits reads as no wait at all
+  (it is an upper bound, and no bound means the same thing).
+- An unterminated quoted string runs to the end of its field value.
+- Values may hold obs-text (U+0080 to U+00FF) as opaque data; anything above is rejected.
 
 ## Why
 
-RFC 7240 defines the `Prefer` request header (`respond-async`, `return=minimal`,
-`return=representation`, `wait=10`, `handling=strict`, and arbitrary token or
-quoted-value preferences with parameters) and the matching `Preference-Applied`
-response header. The grammar is small but fiddly: parameters, optional values,
-quoted-strings that may contain commas and semicolons, and case-insensitive names.
-
-Python has no dedicated package for it. The logic is copied by hand into frameworks
-such as Apache Olingo (Java) or left to ad-hoc string splitting that breaks on quoted
-values. `ietfparse` and `rfcparser` do not ship a ready Prefer codec. This library is a
-small, fully typed, zero-dependency codec that parses a header into preferences and
-builds one back, round-tripping cleanly.
+RFC 7240 is small but fiddly: optional values, quoted strings holding commas and
+semicolons, case-insensitive names, several header lines, first-wins duplicates, and a
+grammar fixed by errata. Hand-rolled splitting breaks on quoted values and lets CR LF
+through into responses. This library is one small, typed, zero-dependency codec for both
+directions, with a strict mode for tests and a tolerant one for servers.
 
 ## License
 

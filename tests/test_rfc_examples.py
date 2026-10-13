@@ -39,8 +39,8 @@ def test_section_2_1_example_1_async_with_an_unregistered_preference() -> None:
 def test_section_2_1_example_2_names_a_preference_lenient() -> None:
     # Erratum 4955: this is a preference called "lenient", not handling=lenient.
     prefs = parse("Lenient", strict=True)
-    assert prefs == (Preference("lenient"),)
     assert prefs.handling is None
+    assert list(prefs) == [Preference("lenient")]
 
 
 def test_section_2_1_example_3_an_undefined_parameter() -> None:
