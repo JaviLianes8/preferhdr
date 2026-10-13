@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import sys
@@ -35,6 +36,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     cli.add_argument("--applied", action="store_true", help="read Preference-Applied")
     cli.add_argument("--json", action="store_true", help="print JSON instead of one per line")
     args = cli.parse_args(argv)
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        # obs-text may not exist in the console encoding; escape it rather than crash.
+        sys.stdout.reconfigure(errors="backslashreplace")
     if args.values:
         values = list(args.values)
     else:
