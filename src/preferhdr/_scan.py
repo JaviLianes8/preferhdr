@@ -94,17 +94,27 @@ class _Scanner:
         return ""
 
     def skip_to(self, start: int, stops: str) -> None:
-        """Resume after a malformed segment: next top-level stop, quoted strings skipped."""
+        """Resume after a malformed segment: next top-level stop, quoted strings skipped.
+
+        A DQUOTE opens a quoted string only where one may start (the segment start or
+        right after ``=``); a stray one inside a token does not swallow what follows.
+        """
         self.pos = start
         in_quotes = False
+        can_open = True
         while self.pos < len(self.text):
             ch = self.text[self.pos]
-            if in_quotes and ch == "\\":
-                self.pos += 1
-            elif ch == '"':
-                in_quotes = not in_quotes
-            elif ch in stops and not in_quotes:
+            if in_quotes:
+                if ch == "\\":
+                    self.pos += 1
+                elif ch == '"':
+                    in_quotes = can_open = False
+            elif ch == '"' and can_open:
+                in_quotes = True
+            elif ch in stops:
                 return
+            elif ch not in _OWS:
+                can_open = ch == "="
             self.pos += 1
 
     def member(self) -> Raw:
@@ -138,10 +148,11 @@ def scan_field(text: str, *, strict: bool, applied: bool) -> list[Raw]:
     need_member = True
     try:
         while True:
+            element = scanner.pos
             scanner.skip_ows()
             if not scanner.peek():
                 if need_member and strict:
-                    raise scanner.fail("empty list element")
+                    raise scanner.fail("empty list element", element)
                 return members
             if scanner.peek() == ",":
                 if strict:

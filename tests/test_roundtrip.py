@@ -7,7 +7,7 @@ import random
 from preferhdr import Preference, build, parse
 
 TCHARS = "!#$%&'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-TEXT = "\t" + "".join(map(chr, range(0x20, 0x7F))) + "".join(map(chr, range(0x80, 0x100)))
+TEXT = "\t" + "".join(map(chr, range(0x20, 0x7F))) + "".join(map(chr, range(0xA0, 0x100)))
 
 
 def _token(rng: random.Random) -> str:

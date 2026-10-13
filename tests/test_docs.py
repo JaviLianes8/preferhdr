@@ -61,7 +61,9 @@ def test_the_command_line_examples_print_what_the_readme_shows(
         argument, *shown = run.strip("\n").splitlines()
         assert main([argument.strip("'")]) == status
         out, err = capsys.readouterr()
-        assert (out + err).splitlines() == shown
+        # stdout first, then the error on stderr, in the order the README shows them.
+        assert out.splitlines() + err.splitlines() == shown
+        assert err.splitlines() == [line for line in shown if line.startswith("invalid:")]
 
 
 def test_the_api_table_lists_every_public_name() -> None:

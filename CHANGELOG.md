@@ -31,7 +31,7 @@ All notable changes to this project are documented here. The format follows
   member or parameter is skipped instead of being returned half parsed.
 - `Preference` checks names are tokens and values fit in a header field, lower-cases
   names, and keeps its parameters in an immutable, hashable mapping.
-- `build` refuses a repeated preference, so its output always passes strict parsing.
+- `build` refuses a repeated preference, so any non-empty output passes strict parsing.
 
 ### Fixed
 

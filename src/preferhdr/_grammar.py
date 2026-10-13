@@ -13,8 +13,17 @@ def is_token(text: str) -> bool:
 
 
 def is_text_char(ch: str) -> bool:
-    """Report whether ch may appear in a quoted string: HTAB, SP, VCHAR or obs-text."""
-    return ch == "\t" or " " <= ch <= "~" or "\x80" <= ch <= "\xff"
+    """Report whether ch may appear in a quoted string: HTAB, SP, VCHAR or obs-text.
+
+    obs-text stops short of the C1 controls (U+0080 to U+009F): RFC 9110 allows them, but
+    U+0085 is a line break to ``str.splitlines`` and they carry no text in Latin-1.
+    """
+    return ch == "\t" or " " <= ch <= "~" or "\xa0" <= ch <= "\xff"
+
+
+def ascii_lower(name: str) -> str | None:
+    """Lower-case a name for lookup, or ``None`` when it is not ASCII (so cannot match)."""
+    return name.lower() if isinstance(name, str) and name.isascii() else None
 
 
 def check_name(name: object, what: str) -> str:

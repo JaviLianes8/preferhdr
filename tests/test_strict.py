@@ -33,7 +33,7 @@ def test_valid_values_are_accepted(value: str) -> None:
     ("value", "message", "position"),
     [
         ("", "empty list element", 0),
-        (" ", "empty list element", 1),
+        (" ", "empty list element", 0),
         (",a", "empty list element", 0),
         ("a,", "empty list element", 2),
         ("a, ,b", "empty list element", 3),

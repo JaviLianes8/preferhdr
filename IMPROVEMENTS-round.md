@@ -12,7 +12,7 @@ Progress:
 - [x] Docs and packaging: README, CHANGELOG, metadata, installed-wheel e2e test
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [x] Mutation run: removing guarded logic makes the suite fail
-- [ ] Independent review findings fixed with regression tests
+- [x] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
 ## Starting point
@@ -128,3 +128,16 @@ ones (each has its own grammar and they change over time).
   the first run: a constant `Params` hash, `Preference.__eq__` answering `False` instead
   of deferring to the other operand, escaped quotes ignored and `;` taken as a member
   boundary while skipping a malformed member. Each now has a test that kills it.
+- Independent review: no high-severity finding. Fixed, each with a regression test in
+  `tests/test_review_regressions.py`: the command line printed its error before the
+  preferences (and the README test compared the streams merged); a README example did
+  not pass `mypy --strict`; the CHANGELOG claimed any `build` output passes strict
+  parsing (an empty one does not); stdin lost folded header lines (now joined with SP,
+  RFC 9112 section 5.2) and read past the end of the header section; bytes gave a
+  misleading `TypeError`; names folded case beyond ASCII (Kelvin sign matched `k`); a
+  stray DQUOTE inside a malformed token swallowed the members after it; values could
+  carry U+0085, a line break to `str.splitlines` (C1 controls are now refused, a
+  documented deviation); an empty strict value reported its end as the position;
+  `Params` did not compare equal to a mapping spelled in another case. Documented
+  instead of changed: repeated parameters in strict mode, and the `handling` duplicate
+  case next to `return`. Eleven mutants on the fixes are all killed.

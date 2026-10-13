@@ -16,6 +16,8 @@ def vary(current: str | Iterable[str] | None = None) -> str:
     existing value (or several, one per header line). A list holding ``*`` already covers
     every field and comes back as ``*``. Members must be field names (tokens).
     """
+    if isinstance(current, (bytes, bytearray)):
+        raise TypeError("Vary values must be str, not bytes")
     fields = [] if current is None else [current] if isinstance(current, str) else list(current)
     members: list[str] = []
     for field in fields:

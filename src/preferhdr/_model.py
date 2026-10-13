@@ -6,7 +6,7 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 
 from ._errors import PreferError
-from ._grammar import check_name, check_value, quote
+from ._grammar import ascii_lower, check_name, check_value, quote
 
 
 class Params(Mapping[str, "str | None"]):
@@ -22,13 +22,24 @@ class Params(Mapping[str, "str | None"]):
         self._items = checked
 
     def __getitem__(self, name: str) -> str | None:
-        return self._items[name.lower() if isinstance(name, str) else name]
+        key = ascii_lower(name)
+        if key is None:
+            raise KeyError(name)
+        return self._items[key]
 
     def __iter__(self) -> Iterator[str]:
         return iter(self._items)
 
     def __len__(self) -> int:
         return len(self._items)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        keys = [ascii_lower(key) for key in other]
+        if None in keys or len(set(keys)) != len(other):
+            return False
+        return self._items == {ascii_lower(key): value for key, value in other.items()}
 
     def __hash__(self) -> int:
         return hash(frozenset(self._items.items()))

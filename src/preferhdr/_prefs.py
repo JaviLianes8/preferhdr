@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Literal
 
+from ._grammar import ascii_lower
 from ._model import Preference
 
 # More digits than this cannot be a meaningful number of seconds, and converting them
@@ -33,7 +34,7 @@ class Preferences(tuple[Preference, ...]):
 
     def get(self, name: str) -> Preference | None:
         """The first preference with this name, or ``None``."""
-        key = name.lower()
+        key = ascii_lower(name)
         return next((pref for pref in self if pref.token == key), None)
 
     def __contains__(self, item: object) -> bool:
@@ -86,7 +87,7 @@ class Preferences(tuple[Preference, ...]):
         Parameters are dropped, since that header carries none (RFC 7240 section 3).
         Names that were not requested are skipped.
         """
-        wanted = {name.lower() for name in names}
+        wanted = {ascii_lower(name) for name in names}
         kept = (Preference(pref.token, pref.value) for pref in self if pref.token in wanted)
         return Preferences(kept)
 

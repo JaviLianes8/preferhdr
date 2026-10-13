@@ -22,7 +22,9 @@ print(prefs.respond_async, prefs.wait, prefs.return_, prefs.handling)
 # True 10 minimal None
 print(prefs.get("return"))
 # return=minimal; foo="some parameter"
-print("Wait" in prefs, prefs.get("return").params["foo"])
+applied = prefs.get("return")
+assert applied is not None  # get() gives None when the preference is absent
+print("Wait" in prefs, applied.params["foo"])
 # True some parameter
 ```
 
@@ -125,9 +127,10 @@ invalid: whitespace before '=' at position 4 of field 0
 
 ## Where the RFC leaves room
 
-- `return=minimal, return=representation`: section 4.2 says such a request may be treated
-  as if neither was sent; section 2 says the first instance is the one considered. This
-  library applies the first-wins rule, so `return_` is `"minimal"`.
+- `return=minimal, return=representation` (and the same with `handling`): sections 4.2
+  and 4.4 say such a request may be treated as if neither was sent; section 2 says the
+  first instance is the one considered. This library applies the first-wins rule, so
+  `return_` is `"minimal"`.
 - `Prefer: Lenient` names a preference called `lenient`, not `handling=lenient`
   (erratum 4955).
 - A repeated parameter keeps its first value, like a repeated preference.
@@ -136,7 +139,13 @@ invalid: whitespace before '=' at position 4 of field 0
 - `wait` must be ASCII digits; a value longer than 100 digits reads as no wait at all
   (it is an upper bound, and no bound means the same thing).
 - An unterminated quoted string runs to the end of its field value.
-- Values may hold obs-text (U+0080 to U+00FF) as opaque data; anything above is rejected.
+- Values may hold obs-text as opaque data, U+00A0 to U+00FF. The C1 controls (U+0080 to
+  U+009F) are rejected although RFC 9110 allows them: U+0085 is a line break to Python's
+  `str.splitlines`, and they carry no text. Anything above U+00FF is rejected too.
+- Names are matched case-insensitively in ASCII only, as tokens are ASCII.
+- Strict mode accepts a repeated parameter (no rule forbids it) and keeps the first.
+- On stdin the command line reads the header section only (up to the first empty line)
+  and joins folded lines with a space (RFC 9112 section 5.2).
 
 ## Why
 

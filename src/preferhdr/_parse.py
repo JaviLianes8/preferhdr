@@ -31,6 +31,8 @@ def parse(
     With ``applied=True`` the value is a ``Preference-Applied`` field, which carries no
     parameters: strict mode rejects them, tolerant mode drops them.
     """
+    if isinstance(value, (bytes, bytearray)):
+        raise TypeError("field values must be str, not bytes; decode them as Latin-1")
     fields = [value] if isinstance(value, str) else list(value)
     seen: set[str] = set()
     out: list[Preference] = []

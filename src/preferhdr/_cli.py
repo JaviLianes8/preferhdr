@@ -19,10 +19,19 @@ def _from_lines(text: str, applied: bool) -> list[str]:
     """Field values from stdin: matching header lines when there are any, else every line."""
     wanted = "preference-applied" if applied else "prefer"
     lines = [line.rstrip("\r") for line in text.split("\n")]
-    headers = [m for m in map(_HEADER_LINE.match, lines) if m]
-    if headers:
-        return [m.group(2).strip(" \t") for m in headers if m.group(1).lower() == wanted]
-    return [line for line in lines if line.strip(" \t")]
+    if not any(map(_HEADER_LINE.match, lines)):
+        return [line for line in lines if line.strip(" \t")]
+    fields: list[list[str]] = []
+    for line in lines:
+        match = _HEADER_LINE.match(line)
+        if match:
+            fields.append([match.group(1).lower(), match.group(2).strip(" \t")])
+        elif fields and line[:1] in (" ", "\t"):
+            # Obsolete line folding: RFC 9112 section 5.2 lets a recipient replace it by SP.
+            fields[-1][1] = (fields[-1][1] + " " + line.strip(" \t")).strip(" ")
+        elif fields and not line:
+            break  # the empty line ends the header section; a body follows
+    return [value for name, value in fields if name == wanted]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -47,12 +56,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not values:
         print("no field value found", file=sys.stderr)
         return 1
-    status = 0
+    problem = None
     try:
         parse(values, strict=True, applied=args.applied)
     except PreferError as error:
-        print(f"invalid: {error}", file=sys.stderr)
-        status = 1
+        problem = error
     prefs = parse(values, applied=args.applied)
     if args.json:
         rows = [{"token": p.token, "value": p.value, "params": dict(p.params)} for p in prefs]
@@ -60,7 +68,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         for pref in prefs:
             print(pref)
-    return status
+    if problem is None:
+        return 0
+    sys.stdout.flush()
+    print(f"invalid: {problem}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":  # pragma: no cover
