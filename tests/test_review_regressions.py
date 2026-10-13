@@ -126,3 +126,7 @@ def test_building_nothing_is_not_a_valid_field_value() -> None:
     assert build(Preferences()) == ""
     with pytest.raises(PreferError, match="empty list element"):
         parse(build([]), strict=True)
+
+
+def test_an_escaped_quote_keeps_a_skipped_string_open() -> None:
+    assert parse('a b="\\", y, z", c') == (Preference("c"),)
