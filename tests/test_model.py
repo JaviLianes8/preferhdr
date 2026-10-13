@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pickle
 from typing import Any
+from unittest.mock import ANY
 
 import pytest
 
@@ -105,3 +106,13 @@ def test_params_repr_reads_like_a_dict() -> None:
     assert repr(Preference("a", None, {"b": "1"})) == (
         "Preference(token='a', value=None, params={'b': '1'})"
     )
+
+
+def test_comparison_with_other_types_is_left_to_them() -> None:
+    assert Preference("a") == ANY
+    assert Preference("a") != "a"
+
+
+def test_different_parameters_spread_over_hashes() -> None:
+    hashes = {hash(Preference("a", None, {"x": str(i)})) for i in range(50)}
+    assert len(hashes) > 40

@@ -3,15 +3,15 @@
 Progress:
 - [x] Brainstorm ranked improvements (this file)
 - [x] Pin the ground truth: RFC 7240 and its errata, RFC 8144, RFC 9110, IANA registry
-- [ ] Tolerant parser: several fields, OWS only, empty values, first wins, malformed members
-- [ ] Strict parser for the sender grammar with error positions
-- [ ] Validated model and safe builder: no header injection, Preference-Applied without params
-- [ ] Typed accessors (respond-async, return, wait, handling), applied helper, Vary helper
-- [ ] Command line checker
-- [ ] Contracts: RFC examples (local fetched copy), cited vectors, round trip, README, typing
-- [ ] Docs and packaging: README, CHANGELOG, metadata, installed-wheel e2e test
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Mutation run: removing guarded logic makes the suite fail
+- [x] Tolerant parser: several fields, OWS only, empty values, first wins, malformed members
+- [x] Strict parser for the sender grammar with error positions
+- [x] Validated model and safe builder: no header injection, Preference-Applied without params
+- [x] Typed accessors (respond-async, return, wait, handling), applied helper, Vary helper
+- [x] Command line checker
+- [x] Contracts: RFC examples (local fetched copy), cited vectors, round trip, README, typing
+- [x] Docs and packaging: README, CHANGELOG, metadata, installed-wheel e2e test
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] Mutation run: removing guarded logic makes the suite fail
 - [ ] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
@@ -116,3 +116,15 @@ Where the sources disagree or are silent:
 
 Deferred: per-preference value validation for registered extensions such as the OData
 ones (each has its own grammar and they change over time).
+
+## Results
+
+- Every one of the 17 `Prefer` and `Preference-Applied` example lines in the fetched RFC
+  text parses in strict mode and round trips through `build`.
+- Gates: `ruff format --check .`, `ruff check .`, `mypy --strict src tests` and `pytest`
+  (with the installed-wheel end-to-end test, `PREFERHDR_E2E=1`) all pass.
+- Mutation run: 51 hand-written mutants across every module (grammar, model, scanner,
+  parser, accessors, builder, Vary helper, command line, error pickling). Four survived
+  the first run: a constant `Params` hash, `Preference.__eq__` answering `False` instead
+  of deferring to the other operand, escaped quotes ignored and `;` taken as a member
+  boundary while skipping a malformed member. Each now has a test that kills it.

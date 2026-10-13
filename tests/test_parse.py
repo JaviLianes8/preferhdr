@@ -146,3 +146,11 @@ def test_a_backslash_ending_the_field_is_unterminated() -> None:
 def test_a_field_value_that_is_not_a_string_is_a_type_error() -> None:
     with pytest.raises(TypeError):
         parse([b"a"])  # type: ignore[list-item]
+
+
+def test_a_malformed_member_is_skipped_whole_including_its_parameters() -> None:
+    assert parse("first, a b; c=1; d, last") == (Preference("first"), Preference("last"))
+
+
+def test_an_escaped_quote_inside_a_skipped_member_does_not_end_the_string() -> None:
+    assert parse('a b="x\\", y", c') == (Preference("c"),)
