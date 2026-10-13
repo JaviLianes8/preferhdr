@@ -140,4 +140,8 @@ ones (each has its own grammar and they change over time).
   documented deviation); an empty strict value reported its end as the position;
   `Params` did not compare equal to a mapping spelled in another case. Documented
   instead of changed: repeated parameters in strict mode, and the `handling` duplicate
-  case next to `return`. Eleven mutants on the fixes are all killed.
+  case next to `return`.
+- Final mutation run after the review: 62 mutants (the first set updated to the changed
+  code plus mutants on every review fix), run with bytecode writing off so a restored
+  file can never be shadowed by a stale cache; all 62 make the suite fail.
+- The installed-wheel end-to-end test passes (248 tests with `PREFERHDR_E2E=1`).
