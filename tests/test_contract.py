@@ -4,7 +4,7 @@ import preferhdr
 
 # The public API. Add every exported name here as the library grows; this list is the
 # contract and the test below fails if the module and this list disagree.
-PUBLIC_API: list[str] = ["Preference", "build", "parse"]
+PUBLIC_API: list[str] = ["PreferError", "Preference", "Preferences", "build", "parse", "vary"]
 
 
 def test_all_lists_exactly_the_public_api() -> None:

@@ -1,26 +1,31 @@
-"""Build a Prefer or Preference-Applied header value from preferences."""
+"""Build a Prefer or Preference-Applied field value from preferences."""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 
+from ._errors import PreferError
 from ._model import Preference
-from ._quote import quote
 
 
-def build(prefs: Iterable[Preference]) -> str:
-    """Serialise preferences into a single comma-separated header value."""
-    return ", ".join(_build_one(pref) for pref in prefs)
+def build(prefs: Iterable[Preference], *, applied: bool = False) -> str:
+    """Serialise preferences into one comma-separated field value.
 
-
-def _build_one(pref: Preference) -> str:
-    out = _pair(pref.token, pref.value)
-    for name, value in pref.params.items():
-        out += "; " + _pair(name, value)
-    return out
-
-
-def _pair(name: str, value: str | None) -> str:
-    if value is None:
-        return name
-    return f"{name}={quote(value)}"
+    Every name and value was checked when its ``Preference`` was made, so the result can
+    never split a header. Values that are tokens are written bare, others as quoted
+    strings. A repeated preference raises ``PreferError`` (a sender should not repeat
+    one), and so does a parameter when ``applied=True``, as ``Preference-Applied``
+    carries none. An empty iterable gives ``""``: send no header at all in that case.
+    """
+    seen: set[str] = set()
+    parts: list[str] = []
+    for pref in prefs:
+        if not isinstance(pref, Preference):
+            raise TypeError(f"expected Preference, not {type(pref).__name__}")
+        if pref.token in seen:
+            raise PreferError(f"repeated preference {pref.token!r}")
+        if applied and pref.params:
+            raise PreferError(f"Preference-Applied takes no parameters ({pref.token!r})")
+        seen.add(pref.token)
+        parts.append(str(pref))
+    return ", ".join(parts)

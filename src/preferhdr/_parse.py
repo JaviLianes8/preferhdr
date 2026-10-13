@@ -1,41 +1,56 @@
-"""Parse a Prefer or Preference-Applied header value into preferences."""
+"""Parse Prefer or Preference-Applied field values into preferences."""
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
+from ._errors import PreferError
 from ._model import Preference
-from ._quote import unquote
-from ._split import split_top
+from ._prefs import Preferences
+from ._scan import scan_field
 
 
-def parse(header: str) -> list[Preference]:
-    """Parse a header value into a list of preferences, tolerating empty entries.
+def parse(
+    value: str | Iterable[str], *, strict: bool = False, applied: bool = False
+) -> Preferences:
+    """Parse one field value, or several (one per header line), into preferences.
 
-    Preference and parameter names are lower-cased, since they are case-insensitive
-    per RFC 7240. Values are kept verbatim. Blank or nameless entries are skipped.
+    Several values mean the same as their comma-separated concatenation (RFC 7240
+    section 2). When a preference is repeated, only the first one counts; the same goes
+    for a repeated parameter. Names are lower-cased and an empty value becomes ``None``.
+
+    By default the parser is tolerant, as a server must be: whitespace around ``=`` and
+    empty list elements are accepted, CR, LF and NUL read as spaces, and a malformed
+    member (or a malformed parameter of a valid preference) is skipped. It never raises
+    ``PreferError``.
+
+    With ``strict=True`` the value must follow the grammar a sender is bound to (RFC 7240
+    with erratum 4439, RFC 9110 lists): no empty elements, no whitespace around ``=``,
+    no repeated preference. The first violation raises ``PreferError``.
+
+    With ``applied=True`` the value is a ``Preference-Applied`` field, which carries no
+    parameters: strict mode rejects them, tolerant mode drops them.
     """
-    prefs: list[Preference] = []
-    for element in split_top(header, ","):
-        pref = _parse_element(element)
-        if pref is not None:
-            prefs.append(pref)
-    return prefs
-
-
-def _parse_element(element: str) -> Preference | None:
-    parts = split_top(element, ";")
-    token, value = _parse_pair(parts[0])
-    if not token:
-        return None
-    params: dict[str, str | None] = {}
-    for part in parts[1:]:
-        name, param_value = _parse_pair(part)
-        if name:
-            params[name] = param_value
-    return Preference(token=token, value=value, params=params)
-
-
-def _parse_pair(part: str) -> tuple[str, str | None]:
-    name, sep, raw = part.partition("=")
-    if not sep:
-        return name.strip().lower(), None
-    return name.strip().lower(), unquote(raw.strip())
+    if isinstance(value, (bytes, bytearray)):
+        raise TypeError("field values must be str, not bytes; decode them as Latin-1")
+    fields = [value] if isinstance(value, str) else list(value)
+    seen: set[str] = set()
+    out: list[Preference] = []
+    for index, field in enumerate(fields):
+        if not isinstance(field, str):
+            raise TypeError(f"field values must be str, not {type(field).__name__}")
+        try:
+            members = scan_field(field, strict=strict, applied=applied)
+        except PreferError as error:
+            raise PreferError(error.message, error.position, index) from None
+        for name, pref_value, params, start in members:
+            if name in seen:
+                if strict:
+                    raise PreferError(f"repeated preference {name!r}", start, index)
+                continue
+            seen.add(name)
+            first: dict[str, str | None] = {}
+            for param, param_value in params:
+                first.setdefault(param, param_value)
+            out.append(Preference(name, pref_value, first))
+    return Preferences(out)
