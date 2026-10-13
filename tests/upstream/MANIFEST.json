@@ -1,0 +1,14 @@
+{
+  "title": "RFC 7240, Prefer Header for HTTP (plain text)",
+  "base_url": "https://www.rfc-editor.org/rfc/",
+  "folder": "rfc",
+  "revision": "RFC 7240, June 2014 (published RFCs do not change)",
+  "licence": "IETF Trust Legal Provisions (BCP 78), https://trustee.ietf.org/license-info",
+  "fetched": "2026-10-13",
+  "files": {
+    "rfc7240.txt": {
+      "size": 32796,
+      "sha256": "2cde510338babf6ad937e0bcb31989bb9a664ab1567d4b41cb143fe9740ae16e"
+    }
+  }
+}
