@@ -14,10 +14,11 @@ from preferhdr._cli import main
 
 ROOT = Path(__file__).resolve().parents[1]
 README = (ROOT / "README.md").read_text(encoding="utf-8")
+GUIDE = (ROOT / "GUIDE.md").read_text(encoding="utf-8")
 
 
-def _python_blocks() -> list[str]:
-    return re.findall(r"```python\n(.*?)```", README, flags=re.DOTALL)
+def _python_blocks(text: str = README) -> list[str]:
+    return re.findall(r"```python\n(.*?)```", text, flags=re.DOTALL)
 
 
 def _expected_output(block: str) -> list[str]:
@@ -45,8 +46,18 @@ def test_every_readme_example_runs_and_prints_its_comments() -> None:
     assert checked == 10
 
 
+def test_every_guide_example_runs_and_prints_its_comments() -> None:
+    blocks = _python_blocks(GUIDE)
+    assert len(blocks) == 3
+    for block in blocks:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            exec(compile(block, "GUIDE.md", "exec"), {"__name__": "guide"})
+        assert out.getvalue().splitlines() == _expected_output(block), block
+
+
 def test_every_print_in_the_readme_shows_its_output() -> None:
-    for block in _python_blocks():
+    for block in _python_blocks() + _python_blocks(GUIDE):
         prints = [line for line in block.splitlines() if line.strip().startswith("print(")]
         assert len(prints) == len(_expected_output(block)), block
 
