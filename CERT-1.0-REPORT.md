@@ -223,7 +223,7 @@ from PyPI): 365 passed, 0 skipped.
 ### Round 2 (on d94fe1b)
 
 Lens a confirmed A1 and A2 fixed, lens c confirmed F1 to F3 fixed, and lens e confirmed
-its four round 1 survivors killed. Their new findings are all fixed in the commit that
+its four round 1 survivors killed. Their new findings are all fixed in d5480f8, which
 adds `tests/test_qa_regressions_r2.py`; none is disputed. Every new test failed on
 d94fe1b (the F4 tests) or fails on the reported mutant (checked by applying each of A2,
 A4, L1, L4 and L5 in turn), and passes on the fix.
