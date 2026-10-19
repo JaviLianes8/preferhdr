@@ -1,5 +1,7 @@
 """Parse and build HTTP Prefer and Preference-Applied headers per RFC 7240."""
 
+from __future__ import annotations
+
 from ._build import build
 from ._errors import PreferError
 from ._model import Preference
