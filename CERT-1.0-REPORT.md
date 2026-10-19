@@ -32,7 +32,7 @@ Progress:
 | 7 | Real ground truth | PASS: five fetched sources with a hash manifest, a grammar oracle compiled from their ABNF, the standard library, parse-prefer-header 1.0.0 run with Node.js, PyPI 0.2.0 |
 | 8 | Real e2e from the wheel | PASS: wheel installed in a fresh venv over PyPI 0.2.0 (upgrade in place), driven from an empty folder, CLI by subprocess |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2 free-threaded |
+| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2 free-threaded, last run at c418230 |
 | 11 | README and `twine check` | PASS: `twine check --strict` on wheel and sdist |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-19 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
@@ -140,6 +140,17 @@ tree and ran above). 3.8 and 3.9 are installed but below `requires-python`.
 
 At 97aa23f on the laptop, each command on its own: `ruff format --check .`, `ruff check .`,
 `mypy --strict src`, `mypy --strict src tests` and `pytest` (344 passed) exit 0.
+
+At c418230 (code as in 6ca8123, the round 3 fix) on the laptop, from a fresh `git archive`
+with the fetched sources (hashes checked), the Node.js reference and the 0.2.0 oracle:
+`ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests` exit
+0; `pytest` with `PREFERHDR_E2E=1`, `PREFERHDR_E2E_PYPI=1` and `PREFERHDR_V02` gives 392
+passed, 0 skipped (wheel and sdist built and inspected, upgrade in place from PyPI 0.2.0,
+command by subprocess); `twine check --strict` passes on both files. The built wheel in a
+fresh venv per interpreter with the sdist's suite (`src` removed): CPython 3.10.19 377
+passed and 2 skipped (the e2e test and the `StrEnum` case, which needs 3.11), 3.11.14,
+3.12.12, 3.13.11, 3.14.2 and 3.14.2 free-threaded 378 passed and 1 skipped each (the e2e
+test).
 
 ## Author mutation round (item 18)
 
