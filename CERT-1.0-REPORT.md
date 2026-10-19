@@ -291,6 +291,10 @@ mutant (the `isinstance(other, Mapping)` guard deleted from the parameter mappin
 | A2: parameters given as a `dict` subclass were read through `dict.items()`, which skips the subclass's lookups, so a key its lookup rejects was accepted and the stored value replaced the value the lookup gives | a | a `dict` subclass that keeps a built-in `items()` is read through its own iteration and lookups (an overridden `items()` is still honoured; a plain `dict` reads as before), so the documented `TypeError` holds; `test_a_dict_subclass_whose_lookup_rejects_its_keys_is_a_type_error`, `test_a_dict_subclass_is_read_through_its_lookups` (`dict` and `OrderedDict` subclasses), `test_a_dict_subclass_is_read_through_its_iteration`, `test_a_dict_subclass_that_overrides_items_is_read_through_items`, `test_a_plain_dict_is_read_as_it_is`; the change against 0.2.0 is listed under Fixed in the CHANGELOG and in the GUIDE upgrade notes |
 | F1-M12 (e): no contract pinned parameter equality against non-mappings | e | `test_parameters_never_equal_a_non_mapping` (`None`, `5`, `"x"`, `["x"]`, a list of pairs, `bytes`, `object()`; `==` and `!=` in both orders give `False` and `True`, never raise) |
 
+Gates on 55c6ace, on this PC (CPython 3.13.2): `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest --timeout=300` each exit 0
+(400 passed, 7 opt-in skips).
+
 ### Disputed findings
 
 None in rounds 1 to 4.
