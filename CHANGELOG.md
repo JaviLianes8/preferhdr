@@ -6,6 +6,36 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-19
+
+The public API is now stable: `parse`, `build`, `vary`, `Preference`, `Preferences` and
+`PreferError`, with the signatures, defaults and error types of 0.2.0. Every valid value
+reads and builds exactly as in 0.2.0; the changes below only touch missing headers,
+wrong argument types, error message texts and the command line.
+
+### Added
+
+- `parse(None)` gives empty `Preferences`, so a missing header needs no special case.
+- Every public name, method and property carries a runnable example, checked as a doctest.
+- `GUIDE.md`: every rule the parser follows, the error reference and upgrade notes.
+
+### Changed
+
+- Error messages quote at most 40 characters of a name, value or type name and give
+  the length of anything longer; 0.2.0 quoted the whole input.
+- `Preferences.get` and `Preferences.applied` raise `TypeError` for a name that is not a
+  `str`; 0.2.0 answered `None` or skipped it.
+- `parse` of something that is neither a `str` nor an iterable raises `TypeError` with a
+  message naming the type (0.2.0 raised Python's own "not iterable" `TypeError`).
+- `Preference(..., params=...)` with something other than a mapping names the type in
+  its `TypeError` message.
+- `PreferError`, `Preference` and `Preferences` report `preferhdr` as their module, so
+  they show and pickle as `preferhdr.<Name>`. Pickles written by 0.2.0 still load.
+- The `preferhdr` command exits 1 without a traceback when the reader of its output
+  goes away, and cuts argparse's echo of an unknown argument to 200 characters.
+- `python -m preferhdr` no longer runs the command when the module is merely imported.
+- Classifier `Development Status :: 5 - Production/Stable`.
+
 ## [0.2.0]
 
 ### Added
