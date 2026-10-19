@@ -10,6 +10,7 @@ import pickle
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -143,3 +144,17 @@ def test_a_closed_output_pipe_exits_1_without_a_traceback() -> None:
         err = proc.stderr.read()
         assert proc.wait(timeout=120) == 1
     assert b"Traceback" not in err
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (b"wait", None, {}),
+        ("wait", b"1", {}),
+        ("wait", None, {b"x": None}),
+        ("w", None, {"x": b"1"}),
+    ],
+)
+def test_bytes_names_and_values_are_type_errors(args: tuple[Any, Any, Any]) -> None:
+    with pytest.raises(TypeError, match="bytes"):
+        Preference(*args)
