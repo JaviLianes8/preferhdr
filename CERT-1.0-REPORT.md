@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 to 4 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1 to 5 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -295,6 +295,31 @@ Gates on 55c6ace, on this PC (CPython 3.13.2): `ruff format --check .`, `ruff ch
 `mypy --strict src`, `mypy --strict src tests` and `pytest --timeout=300` each exit 0
 (400 passed, 7 opt-in skips).
 
+### Round 5 (on 652c7c6)
+
+Lens e ran its own mutation sweep of 31 mutants on the parameter mapping's `__eq__`, the
+type name in messages, `_pairs` and `_builtin`: 23 killed, 2 equivalent, 6 surviving. It
+confirmed F1-M12 from round 4 fixed. Every survivor is fixed below by a contract in
+`tests/test_qa_regressions_r5.py`; none is disputed and no behaviour changed, so the
+CHANGELOG is unchanged. Each new test passes on 652c7c6, and each of the six mutants, applied
+alone, fails exactly the test named for it.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| F2-M12b: the parameter mapping returning `False` instead of `NotImplemented` for a non-mapping survived | e | `test_parameters_leave_a_non_mapping_comparison_to_the_other_side` (`mock.ANY` and an always-equal object: `==` is `True`, `!=` is `False`) |
+| F3-T2: the cut boundary of a type name (41 characters) was not pinned | e | `test_a_type_name_of_forty_one_characters_is_cut` (exact message) |
+| F4-T8: keeping the tail instead of the head of a long type name survived | e | `test_a_long_type_name_keeps_its_head` (40 `H` then 60 `T`, exact message) |
+| F5-T6: naming a type by `__qualname__` survived | e | `test_a_nested_type_is_named_without_its_enclosing_class` |
+| F6-T7: naming a type by `value.__class__` survived | e | `test_a_type_is_named_by_its_real_class_not_the_one_it_claims` (a `__class__` property that claims `int`) |
+| F7-P18: weakening the raw-storage fast path of `_pairs` from `type(raw) is dict` to `isinstance` survived | e | `test_a_params_subclass_storing_a_dict_subclass_is_read_through_its_lookups` (a `Params` subclass whose storage is a `dict` subclass overriding `__getitem__`) |
+
+The side note on `Preference(mock.Mock(spec=str))` is outside lens e and is left to lens c.
+
+Gates on 4bf7452, on the laptop (fresh clone from GitHub, fresh venv, CPython 3.14.6):
+`ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and
+`pytest --timeout=300` each exit 0 (414 tests collected; the opt-in tests skip without the
+fetched sources).
+
 ### Disputed findings
 
-None in rounds 1 to 4.
+None in rounds 1 to 5.
