@@ -19,6 +19,7 @@ grammar a sender is bound to and raises `PreferError` at the first problem.
 | `a; x=1; x=2` (repeated parameter) | `a; x=1` | `a; x=1` (no rule forbids it) |
 | CR, LF or NUL | read as a space | error |
 | `a, b="x, c` (unterminated quote) | `a`: the rest of that value is dropped | error |
+| `a, b; p="x, c` (unterminated quote in a parameter) | `a`, `b`: the parameter and the rest of that value are dropped | error |
 
 The strict grammar is RFC 7240 section 2 with verified erratum 4439, built on the RFC
 9110 rules for tokens, quoted strings, parameters and lists:
@@ -145,4 +146,11 @@ tens of thousands of generated inputs. The differences are:
   type.
 - The public classes report `preferhdr` as their module, and pickles name only public
   classes. Pickles written by 0.2.0 still load.
-- The command exits 1 without a traceback when its output pipe closes.
+- The command exits 1 without a traceback when its output pipe closes, and cuts
+  argparse's echo of an unknown argument to 200 characters.
+- Importing `preferhdr.__main__` no longer runs the command; `python -m preferhdr` still
+  does.
+- A `str` subclass (a `str` Enum, say) given as a name or value is checked and stored as
+  a plain `str` with its characters; 0.2.0 kept the object and wrote whatever its
+  formatting gave (`Ret.MINIMAL` instead of `minimal`).
+- The command joins folded header lines in linear time.

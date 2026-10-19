@@ -141,7 +141,9 @@ invalid: whitespace before '=' at position 4 of field 0
 - `wait` must be ASCII digits; a value longer than 100 digits reads as no wait at all
   (it is an upper bound, and no bound means the same thing).
 - An unterminated quoted string runs to the end of its field value, so the tolerant
-  parser drops its member and whatever follows it in that value.
+  parser drops what it belongs to and whatever follows it in that value: the member, or
+  only the parameter when the string is a parameter value (`a, b; p="q, c` keeps `a`
+  and `b`).
 - Values may hold obs-text as opaque data, U+00A0 to U+00FF. The C1 controls (U+0080 to
   U+009F) are rejected although RFC 9110 allows them: U+0085 is a line break to Python's
   `str.splitlines`, and they carry no text. Anything above U+00FF is rejected too.

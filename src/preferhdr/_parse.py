@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ._errors import PreferError
-from ._grammar import show, type_name
+from ._grammar import exact, show, type_name
 from ._model import Preference
 from ._prefs import Preferences
 from ._scan import scan_field
@@ -73,7 +73,7 @@ def parse(
         if not isinstance(field, str):
             raise TypeError(f"field values must be str, not {type_name(field)}")
         try:
-            members = scan_field(field, strict=strict, applied=applied)
+            members = scan_field(exact(field), strict=strict, applied=applied)
         except PreferError as error:
             raise PreferError(error.message, error.position, index) from None
         for name, pref_value, params, start in members:

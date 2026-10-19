@@ -48,17 +48,18 @@ def _from_lines(text: str, applied: bool) -> list[str]:
     lines = [line.rstrip("\r") for line in text.split("\n")]
     if not any(map(_HEADER_LINE.match, lines)):
         return [line for line in lines if line.strip(" \t")]
-    fields: list[list[str]] = []
+    # Each field collects its pieces and is joined once, so folded lines cost linear time.
+    fields: list[tuple[str, list[str]]] = []
     for line in lines:
         match = _HEADER_LINE.match(line)
         if match:
-            fields.append([match.group(1).lower(), match.group(2).strip(" \t")])
+            fields.append((match.group(1).lower(), [match.group(2).strip(" \t")]))
         elif fields and line[:1] in (" ", "\t"):
             # Obsolete line folding: RFC 9112 section 5.2 lets a recipient replace it by SP.
-            fields[-1][1] = (fields[-1][1] + " " + line.strip(" \t")).strip(" ")
+            fields[-1][1].append(line.strip(" \t"))
         elif fields and not line:
             break  # the empty line ends the header section; a body follows
-    return [value for name, value in fields if name == wanted]
+    return [" ".join(filter(None, pieces)) for name, pieces in fields if name == wanted]
 
 
 def main(argv: Sequence[str] | None = None) -> int:

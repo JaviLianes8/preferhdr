@@ -51,7 +51,6 @@ packages = ["src/preferhdr"]
 exclude = [
     "IMPROVEMENTS-round*.md",
     "CERT-1.0-*.md",
-    ".gitignore",
     "tests/upstream/*",
     "!tests/upstream/MANIFEST.json",
 ]

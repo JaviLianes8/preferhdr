@@ -22,6 +22,13 @@ def type_name(value: object) -> str:
     return name if len(name) <= SHOWN else name[:SHOWN] + "..."
 
 
+def exact(text: str) -> str:
+    """The characters of a str as a plain str, whatever a subclass (an Enum) overrides."""
+    # Checks and output must see the same characters; a subclass can change both iteration
+    # and formatting, so only its underlying data is trusted.
+    return str.__str__(text)
+
+
 def is_token(text: str) -> bool:
     """Report whether text is a non-empty RFC 9110 token."""
     return bool(text) and all(ch in TCHAR for ch in text)
@@ -38,12 +45,16 @@ def is_text_char(ch: str) -> bool:
 
 def ascii_lower(name: str) -> str | None:
     """Lower-case a name for lookup, or ``None`` when it is not ASCII (so cannot match)."""
-    return name.lower() if isinstance(name, str) and name.isascii() else None
+    if not isinstance(name, str):
+        return None
+    name = exact(name)
+    return name.lower() if name.isascii() else None
 
 
 def check_name(name: object, what: str) -> str:
     if not isinstance(name, str):
         raise TypeError(f"{what} must be a str, not {type_name(name)}")
+    name = exact(name)
     if not is_token(name):
         raise PreferError(f"{what} {show(name)} is not a token")
     # Names compare case-insensitively (RFC 7240 section 2); one spelling keeps equality exact.
@@ -55,6 +66,7 @@ def check_value(value: object, what: str) -> str | None:
         return None
     if not isinstance(value, str):
         raise TypeError(f"{what} must be a str or None, not {type_name(value)}")
+    value = exact(value)
     for ch in value:
         if not is_text_char(ch):
             raise PreferError(f"{what} holds U+{ord(ch):04X}, which a header field cannot carry")

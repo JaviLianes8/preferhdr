@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ._errors import PreferError
-from ._grammar import is_token, show, type_name
+from ._grammar import exact, is_token, show, type_name
 
 
 def vary(current: str | Iterable[str] | None = None) -> str:
@@ -28,7 +28,7 @@ def vary(current: str | Iterable[str] | None = None) -> str:
     for field in fields:
         if not isinstance(field, str):
             raise TypeError(f"Vary values must be str, not {type_name(field)}")
-        for raw in field.split(","):
+        for raw in exact(field).split(","):
             member = raw.strip(" \t")
             if not member:
                 continue

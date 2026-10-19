@@ -9,7 +9,7 @@ size and sha256 in the manifest.
 
 The errata page and the IANA registry change over time; ``--update`` records their
 current state (and the date) in the manifest, which is then committed with the change.
-The reference parser used as an oracle is installed with npm, as the README explains.
+The reference parser used as an oracle is installed with npm, as CONTRIBUTING.md explains.
 """
 
 from __future__ import annotations
