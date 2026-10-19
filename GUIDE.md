@@ -156,3 +156,6 @@ tens of thousands of generated inputs. The differences are:
 - The command joins folded header lines in linear time.
 - `build` writes a `Preference` subclass from its checked token, value and parameters,
   never through an overridden `__str__`.
+- Parameters given as a mapping that cannot be read raise `TypeError` (0.2.0 leaked the
+  `KeyError` or `AttributeError` raised inside the mapping).
+- A preference with many parameters is written in linear time.

@@ -51,7 +51,14 @@ command line.
 - `build` writes a `Preference` subclass from its token, value and parameters, checked
   again, and so ignores a `__str__` the subclass overrides; `Preference` copies parameters
   given as a subclass of its own parameter mapping into a fresh one. In 0.2.0 such
-  subclasses could skip the checks and put CR LF into a built header.
+  subclasses could skip the checks and put CR LF into a built header. Such a copy reads
+  a subclass through the mapping it shows (its own iteration and lookups), and reads its
+  inherited storage directly only when the subclass overrides none of them.
+- Parameters given as a mapping that cannot be read (iterating it yields a key its own
+  lookup rejects, or its storage is missing) raise `TypeError`; 0.2.0 leaked the
+  `KeyError` or `AttributeError` from inside the mapping.
+- `str(preference)`, and so `build`, write a preference in time linear in its number of
+  parameters; 0.2.0 took quadratic time, about 20 seconds for 1.6 million parameters.
 
 ## [0.2.0]
 

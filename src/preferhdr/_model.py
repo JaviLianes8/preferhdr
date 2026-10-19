@@ -15,16 +15,8 @@ class Params(Mapping[str, "str | None"]):
     _items: dict[str, str | None]
 
     def __init__(self, items: Mapping[str, str | None] | None = None) -> None:
-        source = {} if items is None else items
-        # A subclass may fill its storage without checks, so its lookups miss the keys it
-        # iterates; read what it stores, unless it chose its own items().
-        pairs = (
-            source._items.items()
-            if isinstance(source, Params) and type(source).items is Params.items
-            else source.items()
-        )
         checked: dict[str, str | None] = {}
-        for name, value in pairs:
+        for name, value in _pairs({} if items is None else items):
             key = check_name(name, "parameter name")
             if key in checked:
                 raise PreferError(f"repeated parameter {show(key)}")
@@ -110,11 +102,26 @@ class Preference:
         >>> print(Preference("return", "minimal", {"note": 'say "hi"', "x": None}))
         return=minimal; note="say \"hi\""; x
         """
-        out = _pair(self.token, self.value)
-        for name, value in self.params.items():
-            out += "; " + _pair(name, value)
-        return out
+        parts = [_pair(self.token, self.value)]
+        parts.extend(_pair(name, value) for name, value in self.params.items())
+        return "; ".join(parts)
 
 
 def _pair(name: str, value: str | None) -> str:
     return name if value is None else f"{name}={quote(value)}"
+
+
+_LOOKUPS = ("items", "__iter__", "__getitem__")
+
+
+def _pairs(source: Mapping[str, str | None]) -> list[tuple[str, str | None]]:
+    # A subclass of Params may fill its storage without checks, so its own lookups miss the
+    # keys it iterates: read that storage when it is a plain dict and the subclass keeps
+    # every lookup of Params. Anything else is read as the mapping it shows.
+    raw = getattr(source, "__dict__", {}).get("_items")
+    if type(raw) is dict and all(getattr(type(source), n) is getattr(Params, n) for n in _LOOKUPS):
+        return list(raw.items())
+    try:
+        return list(source.items())
+    except (AttributeError, KeyError) as error:
+        raise TypeError(f"params could not be read as a mapping ({type_name(error)})") from None
