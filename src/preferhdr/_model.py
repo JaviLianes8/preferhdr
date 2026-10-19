@@ -89,6 +89,10 @@ class Preference:
             return NotImplemented
         return (self.token, self.value, self.params) == (other.token, other.value, other.params)
 
+    # A pickle names only the public class, never the private parameter mapping.
+    def __reduce__(self) -> tuple[type[Preference], tuple[str, str | None, dict[str, str | None]]]:
+        return (type(self), (self.token, self.value, dict(self.params)))
+
     def __str__(self) -> str:
         r"""The preference as it is written in a header field.
 

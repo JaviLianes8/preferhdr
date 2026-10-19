@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import pickle
 import random
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -104,3 +106,26 @@ def test_the_documented_changes(old: ModuleType) -> None:
     assert len(str(before.value)) > 100 > len(str(after.value))
     assert old.Preference.__module__ == "preferhdr_v02._model"
     assert preferhdr.Preference.__module__ == "preferhdr"
+
+
+def test_pickles_written_by_0_2_0_load(old: ModuleType) -> None:
+    program = (
+        "import pickle, sys; from preferhdr import parse, PreferError;"
+        "prefs = parse('wait=1; a=\"x y\", return=minimal');"
+        "sys.stdout.write(pickle.dumps((prefs, prefs[0], PreferError('m', 1, 0))).hex())"
+    )
+    folder = os.environ["PREFERHDR_V02"]
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {folder!r}); {program}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = bytes.fromhex(done.stdout)
+    assert b"preferhdr._model" in data
+    prefs, first, error = pickle.loads(data)
+    assert prefs == preferhdr.parse('wait=1; a="x y", return=minimal')
+    assert isinstance(prefs, preferhdr.Preferences)
+    assert first == prefs[0] and first.params["A"] == "x y"
+    assert isinstance(error, preferhdr.PreferError)
+    assert (error.message, error.position, error.field) == ("m", 1, 0)

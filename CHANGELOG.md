@@ -30,7 +30,9 @@ wrong argument types, error message texts and the command line.
 - `Preference(..., params=...)` with something other than a mapping names the type in
   its `TypeError` message.
 - `PreferError`, `Preference` and `Preferences` report `preferhdr` as their module, so
-  they show and pickle as `preferhdr.<Name>`. Pickles written by 0.2.0 still load.
+  they show and pickle as `preferhdr.<Name>`; a pickled `Preference` stores its
+  parameters as a plain `dict`, so no pickle names a private module. Pickles written by
+  0.2.0 still load.
 - The `preferhdr` command exits 1 without a traceback when the reader of its output
   goes away, and cuts argparse's echo of an unknown argument to 200 characters.
 - `python -m preferhdr` no longer runs the command when the module is merely imported.
