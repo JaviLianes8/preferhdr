@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19)
+- [ ] Five QA lenses (item 19): round 1 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -186,3 +186,40 @@ killed by a new contract (checked by re-running the mutant).
 | M34 | header section does not end at the empty line | killed: `tests/test_review_regressions.py::test_cli_stops_at_the_end_of_the_header_section` |
 | M35 | usage error not cut | killed: `tests/test_contract_api.py::test_a_huge_unknown_argument_is_cut_in_the_usage_error` |
 | M36 | bytes name passes the type check | survived; contract added (`tests/test_contract_api.py::test_bytes_names_and_values_are_type_errors`), now killed |
+
+## QA lenses (item 19)
+
+### Round 1 (on 98ff9b8)
+
+Lenses a (API and docs), c (adversarial), d (packaging) and e (contract strength, its
+own 84 mutants: 77 killed, 3 proven equivalent, 4 survivors) reported these findings.
+Every one is fixed in 03aef1a; none is disputed. Each behaviour finding got a test in
+`tests/test_qa_regressions.py` that failed on 98ff9b8 (or, for the mutation findings,
+that fails on the reported mutant, checked by applying each mutant) before the fix.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| A1: README said an unterminated quote drops its member even inside a parameter value | a | README reworded (member, or only the parameter); GUIDE table row added; both cases pinned by `test_an_unterminated_quote_drops_what_it_belongs_to_and_the_rest` |
+| A2: GUIDE upgrade list missed the argparse cut and the `__main__` import change | a | both added to the list |
+| D1: sdist exclude listed `.gitignore`, which hatchling ships anyway | d | the line is removed from `pyproject.toml` |
+| D2: `scripts/fetch_upstream.py` sent readers to the README for the npm install | d | it points to CONTRIBUTING.md, which has the command |
+| F1 (c): the command joined folded lines in quadratic time | c | pieces are collected and joined once; `test_folded_header_lines_are_joined_in_linear_time` (ratio 18.7 before, linear after) |
+| F2 (c): a `str` Enum was written as `Ret.MINIMAL` | c | every accepted `str` is turned into a plain `str` (`_grammar.exact`) before it is checked or stored; `test_str_enums_are_written_as_their_values` (mixin and `StrEnum`) |
+| F3 (c): a `str` subclass overriding `__iter__`, `lower`, `split` or `strip` passed the checks and split a built header | c | same fix, applied to names, values, parameters, `parse` fields, `vary` values and lookups; `test_a_str_subclass_is_checked_by_its_real_characters` and three more tests with a subclass overriding every method used |
+| F1-M4 (e): equality ignoring parameters survived | e | `test_preferences_differing_only_in_parameters_are_unequal` |
+| F2-M6 (e): order-dependent parameter hash survived | e | `test_parameter_order_changes_neither_equality_nor_hash` |
+| F3-G3 (e): message cut at 41 characters survived | e | `test_messages_cut_exactly_after_forty_characters` |
+| F4-S5 (e): stray-quote reopening caught only by the opt-in 0.2.0 oracle | e | `test_a_quote_after_a_closed_string_does_not_open_another` in the default suite |
+
+The two `str` subclass changes and the linear folding are listed under Fixed in the
+CHANGELOG and in the GUIDE upgrade notes (0.2.0 behaved the same way).
+
+Gates at 03aef1a on Elena's PC (fresh `git archive`, CPython 3.14.2, fetched sources and
+the Node.js reference present): `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest` each exit 0 (358 passed, 7
+opt-in skips); with `PREFERHDR_E2E=1`, `PREFERHDR_E2E_PYPI=1` and `PREFERHDR_V02` (0.2.0
+from PyPI): 365 passed, 0 skipped.
+
+### Disputed findings
+
+None in round 1.
