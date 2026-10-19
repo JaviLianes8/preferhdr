@@ -320,6 +320,27 @@ Gates on 4bf7452, on the laptop (fresh clone from GitHub, fresh venv, CPython 3.
 `pytest --timeout=300` each exit 0 (414 tests collected; the opt-in tests skip without the
 fetched sources).
 
+### Round 6 (on ca32c98)
+
+Lens e confirmed the six round 5 findings fixed (each earlier mutant, applied alone, fails
+its new test) and swept 10 new mutants on the type name in messages, the parameter mapping's
+`__eq__`, `_pairs` and `_builtin`: 8 killed, 2 surviving. Both survivors are fixed below by
+contracts; none is disputed and no behaviour changed, so the CHANGELOG is unchanged. Every
+new or tightened test passes on ca32c98, and each of the two mutants, applied alone, fails
+the tests named for it.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| F8-N3: dropping the early `None in keys` rejection from the parameter mapping's `__eq__` survived (a mapping with a key no parameter can have was read, and its lookup errors escaped) | e | `test_parameters_differ_from_a_mapping_with_a_key_no_parameter_can_have` (keys `5`, `"é"` and `b"x"` in a mapping whose lookup always raises: `==` is `False`, `!=` is `True`, no value is read), `test_parameters_differ_from_a_mapping_with_keys_equal_after_folding` |
+| F9-N10: naming the mapping's type instead of the error's in "params could not be read as a mapping (...)" survived | e | `test_unreadable_params_name_the_error_that_stopped_the_read` (a mapping whose lookup misses a key it lists: `KeyError`; a `dict` subclass whose `items()` raises: `AttributeError`; exact messages); the three tests in `tests/test_qa_regressions_r3.py` and `tests/test_qa_regressions_r4.py` that matched only the prefix now assert the exact message |
+
+The tests are in `tests/test_qa_regressions_r6.py` and in the tightened r3 and r4 tests,
+commit aa1f789.
+
+Gates on aa1f789, on this PC (CPython 3.13.2): `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest --timeout=300` each exit 0
+(420 tests collected: 414 passed, 6 opt-in skips without the fetched sources).
+
 ### Disputed findings
 
-None in rounds 1 to 5.
+None in rounds 1 to 6.
