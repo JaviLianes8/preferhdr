@@ -39,7 +39,7 @@ Progress:
 | 14 | sdist and wheel contents | PASS |
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending |
-| 17 | PR and trace guard | PR from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
+| 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 36 mutants, 34 killed, 1 equivalent, 1 survivor killed by a new contract |
 | 19 | Five independent QA lenses | pending |
 
@@ -119,9 +119,10 @@ times the input); 1 MB in every error path gives a message under 600 characters;
 
 ## Packaging, e2e and Pythons (items 8, 10, 13, 14)
 
-At 462c9dd on Elena's PC (fresh `git archive` of the pushed head), CPython 3.14.2, with the
+At 97aa23f on the laptop (fresh `git archive` of the pushed head), CPython 3.14.2, with the
 fetched sources, the Node.js reference, the 0.2.0 oracle, `PREFERHDR_E2E=1` and
-`PREFERHDR_E2E_PYPI=1`: 340 passed, 0 skipped. The e2e test builds the wheel and sdist,
+`PREFERHDR_E2E_PYPI=1`: 344 passed, 0 skipped (the same run at 462c9dd on Elena's PC: 340
+passed). The e2e test builds the wheel and sdist,
 inspects both (`py.typed`, `__main__`, entry point, LICENSE in the wheel; GUIDE,
 CHANGELOG, LICENSE, the manifest and the scripts in the sdist; no fetched files, no
 `node_modules`, no certification notes; Production/Stable classifier; no runtime
@@ -132,13 +133,13 @@ in place with the built wheel, and drives the installed package from an empty fo
 Every interpreter available here from `requires-python` up, the built wheel installed in a
 fresh venv and the sdist's own suite run with `src` removed (fetched sources, Node.js
 reference and 0.2.0 oracle present): CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2 and
-3.14.2 free-threaded, 326 passed and 1 skipped each (the e2e test, which needs the source
+3.14.2 free-threaded, 330 passed and 1 skipped each (at 97aa23f) (the e2e test, which needs the source
 tree and ran above). 3.8 and 3.9 are installed but below `requires-python`.
 
 ## Gates (item 15)
 
-At 462c9dd on Elena's PC, each command on its own: `ruff format --check .`, `ruff check .`,
-`mypy --strict src`, `mypy --strict src tests` and `pytest` (340 passed) exit 0.
+At 97aa23f on the laptop, each command on its own: `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest` (344 passed) exit 0.
 
 ## Author mutation round (item 18)
 
