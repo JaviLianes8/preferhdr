@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1 and 2 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -220,6 +220,29 @@ the Node.js reference present): `ruff format --check .`, `ruff check .`,
 opt-in skips); with `PREFERHDR_E2E=1`, `PREFERHDR_E2E_PYPI=1` and `PREFERHDR_V02` (0.2.0
 from PyPI): 365 passed, 0 skipped.
 
+### Round 2 (on d94fe1b)
+
+Lens a confirmed A1 and A2 fixed, lens c confirmed F1 to F3 fixed, and lens e confirmed
+its four round 1 survivors killed. Their new findings are all fixed in the commit that
+adds `tests/test_qa_regressions_r2.py`; none is disputed. Every new test failed on
+d94fe1b (the F4 tests) or fails on the reported mutant (checked by applying each of A2,
+A4, L1, L4 and L5 in turn), and passes on the fix.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| A3: the CHANGELOG and GUIDE said 0.2.0 wrote a `str` Enum as `Ret.MINIMAL` on every Python | a | both now say "on Python 3.11 and later": 0.2.0 from PyPI gives `return=minimal` on 3.10.19 and `return=Ret.MINIMAL` on 3.11.14, 3.12.12 and 3.13.11 (run in this round; the change came with 3.11, not 3.12 as the finding guessed) |
+| F4 (c): a subclass of the private parameter mapping, or of `Preference` overriding `__str__`, got CR LF into `build` (or an undocumented `KeyError`) | c | `Preference` rebuilds any parameters whose type is not exactly the private class, reading what a subclass stores unless it overrides `items()`; `build` re-creates a `Preference` subclass from its fields (checked again) and writes it with the library's own code. Tests: `test_a_params_subclass_*`, `test_build_writes_a_preference_subclass_by_its_checked_fields`, `test_build_checks_a_preference_subclass_that_skips_its_checks`, `test_build_applies_its_rules_to_a_preference_subclass`; listed under Fixed in the CHANGELOG and in the GUIDE upgrade notes |
+| N1-A4 (e): no test of non-`str` parameter keys | e | `test_a_key_that_is_not_a_str_is_absent_from_the_parameters` |
+| N2-L5 (e): no folded line after another header | e | `test_a_folded_line_belongs_to_the_field_just_above_it`, `test_a_folded_prefer_line_after_another_header_reads_whole` |
+| N3-A2 (e): no non-ASCII lookup through a subclass lying about `isascii` | e | `test_a_lookup_does_not_trust_a_subclass_that_lies_about_isascii` (U+212A) |
+| N4-L1 (e): no whitespace-only folded line | e | `test_a_blank_folded_line_adds_nothing`, `test_a_blank_folded_line_does_not_move_error_positions` |
+| N5-L4 (e): no HTAB after the colon | e | `test_a_tab_after_the_colon_is_not_part_of_the_value` |
+
+Gates on the round 2 fix, on Elena's PC (the working tree packed as committed, CPython
+3.14.2, fetched sources and the Node.js reference present): `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` each exit 0
+(375 passed, 7 opt-in skips).
+
 ### Disputed findings
 
-None in round 1.
+None in rounds 1 and 2.

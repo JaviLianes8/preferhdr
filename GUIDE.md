@@ -152,5 +152,7 @@ tens of thousands of generated inputs. The differences are:
   does.
 - A `str` subclass (a `str` Enum, say) given as a name or value is checked and stored as
   a plain `str` with its characters; 0.2.0 kept the object and wrote whatever its
-  formatting gave (`Ret.MINIMAL` instead of `minimal`).
+  formatting gave (on Python 3.11 and later, `Ret.MINIMAL` instead of `minimal`).
 - The command joins folded header lines in linear time.
+- `build` writes a `Preference` subclass from its checked token, value and parameters,
+  never through an overridden `__str__`.

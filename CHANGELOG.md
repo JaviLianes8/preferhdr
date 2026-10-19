@@ -11,7 +11,8 @@ All notable changes to this project are documented here. The format follows
 The public API is now stable: `parse`, `build`, `vary`, `Preference`, `Preferences` and
 `PreferError`, with the signatures, defaults and error types of 0.2.0. Every valid value
 reads and builds exactly as in 0.2.0; the changes below only touch missing headers,
-wrong argument types, `str` subclasses, error message texts and the command line.
+wrong argument types, subclasses of `str` and `Preference`, error message texts and the
+command line.
 
 ### Added
 
@@ -42,11 +43,15 @@ wrong argument types, `str` subclasses, error message texts and the command line
 
 - A `str` subclass given as a name, value, parameter, field value or `Vary` value (a
   `str` Enum, say) is checked and stored as a plain `str` holding its characters. 0.2.0
-  kept the object, so a `str` Enum was written as `Ret.MINIMAL` instead of `minimal`, and
-  a subclass that overrode iteration or string methods could pass the checks and put CR
-  LF into a built header.
+  kept the object, so on Python 3.11 and later a `str` Enum was written as `Ret.MINIMAL`
+  instead of `minimal`, and a subclass that overrode iteration or string methods could
+  pass the checks and put CR LF into a built header.
 - The command joins folded header lines in linear time; 0.2.0 took quadratic time, so a
   few megabytes of folded lines on stdin kept it busy for minutes.
+- `build` writes a `Preference` subclass from its token, value and parameters, checked
+  again, and so ignores a `__str__` the subclass overrides; `Preference` copies parameters
+  given as a subclass of its own parameter mapping into a fresh one. In 0.2.0 such
+  subclasses could skip the checks and put CR LF into a built header.
 
 ## [0.2.0]
 

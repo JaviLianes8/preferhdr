@@ -12,9 +12,19 @@ from ._grammar import ascii_lower, check_name, check_value, quote, show, type_na
 class Params(Mapping[str, "str | None"]):
     """Read-only parameters of a preference; names are matched case-insensitively."""
 
+    _items: dict[str, str | None]
+
     def __init__(self, items: Mapping[str, str | None] | None = None) -> None:
+        source = {} if items is None else items
+        # A subclass may fill its storage without checks, so its lookups miss the keys it
+        # iterates; read what it stores, unless it chose its own items().
+        pairs = (
+            source._items.items()
+            if isinstance(source, Params) and type(source).items is Params.items
+            else source.items()
+        )
         checked: dict[str, str | None] = {}
-        for name, value in (items or {}).items():
+        for name, value in pairs:
             key = check_name(name, "parameter name")
             if key in checked:
                 raise PreferError(f"repeated parameter {show(key)}")
@@ -77,7 +87,8 @@ class Preference:
     def __post_init__(self) -> None:
         object.__setattr__(self, "token", check_name(self.token, "preference name"))
         object.__setattr__(self, "value", check_value(self.value, f"value of {show(self.token)}"))
-        if not isinstance(self.params, Params):
+        # Only this exact class is known to hold checked parameters; a subclass is rebuilt.
+        if type(self.params) is not Params:
             if not isinstance(self.params, Mapping):
                 raise TypeError(f"params must be a mapping, not {type_name(self.params)}")
             object.__setattr__(self, "params", Params(self.params))
