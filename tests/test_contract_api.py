@@ -126,16 +126,20 @@ def test_a_huge_unknown_argument_is_cut_in_the_usage_error() -> None:
 
 def test_a_closed_output_pipe_exits_1_without_a_traceback() -> None:
     env = {**os.environ, "PYTHONPATH": str(SRC)}
-    values = [f"p{i}=1" for i in range(2000)]
+    # Far more output than any pipe buffer holds, so the writer meets the closed pipe.
+    request = "\n".join(f"p{i}=1" for i in range(200_000)).encode("ascii")
     with subprocess.Popen(
-        [sys.executable, "-m", "preferhdr", ",".join(values)],
+        [sys.executable, "-m", "preferhdr"],
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
     ) as proc:
-        assert proc.stdout is not None and proc.stderr is not None
+        assert proc.stdin is not None and proc.stdout is not None and proc.stderr is not None
+        proc.stdin.write(request)
+        proc.stdin.close()
         proc.stdout.read(10)
         proc.stdout.close()
         err = proc.stderr.read()
-        assert proc.wait(timeout=60) == 1
+        assert proc.wait(timeout=120) == 1
     assert b"Traceback" not in err

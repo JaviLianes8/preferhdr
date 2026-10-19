@@ -45,10 +45,11 @@ def _choices(row: dict[str, str]) -> set[str]:
 
 def test_the_typed_properties_cover_the_values_the_registry_lists() -> None:
     rows = {row["Preference"]: row for row in _registry()}
-    hints = typing.get_type_hints(Preferences.return_.fget)
-    assert _choices(rows["return"]) == set(typing.get_args(typing.get_args(hints["return"])[0]))
-    hints = typing.get_type_hints(Preferences.handling.fget)
-    assert _choices(rows["handling"]) == set(typing.get_args(typing.get_args(hints["return"])[0]))
+    for name, prop in (("return", "return_"), ("handling", "handling")):
+        getter = vars(Preferences)[prop]
+        assert isinstance(getter, property)
+        hint = typing.get_type_hints(getter.fget)["return"]
+        assert _choices(rows[name]) == set(typing.get_args(typing.get_args(hint)[0]))
     for name in ("return", "handling"):
         for choice in _choices(rows[name]):
             prop = "return_" if name == "return" else name
