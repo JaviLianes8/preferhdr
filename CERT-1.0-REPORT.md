@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1, 2 and 3 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1 to 4 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -277,6 +277,20 @@ fresh venv, CPython 3.14.2): `ruff format --check .`, `ruff check .`, `mypy --st
 `mypy --strict src tests` and `pytest --timeout=300` each exit 0 (385 passed, 7 opt-in
 skips).
 
+### Round 4 (on 5483f69)
+
+Lenses a and e reported the findings below; every one is fixed in the commit that adds
+`tests/test_qa_regressions_r4.py`, and none is disputed. The A1 and A2 tests failed on
+5483f69 and pass on the fix; the M12 test passes on 5483f69 and fails on the reported
+mutant (the `isinstance(other, Mapping)` guard deleted from the parameter mapping's
+`__eq__`: five of its seven cases raise `TypeError`).
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| A1: a type name longer than 40 characters was cut without the length note the CHANGELOG promises | a | the type name is cut like names and values, with "(N characters)"; `test_a_long_type_name_is_cut_with_its_length`, `test_a_type_name_of_forty_characters_is_shown_whole` |
+| A2: parameters given as a `dict` subclass were read through `dict.items()`, which skips the subclass's lookups, so a key its lookup rejects was accepted and the stored value replaced the value the lookup gives | a | a `dict` subclass that keeps a built-in `items()` is read through its own iteration and lookups (an overridden `items()` is still honoured; a plain `dict` reads as before), so the documented `TypeError` holds; `test_a_dict_subclass_whose_lookup_rejects_its_keys_is_a_type_error`, `test_a_dict_subclass_is_read_through_its_lookups` (`dict` and `OrderedDict` subclasses), `test_a_dict_subclass_is_read_through_its_iteration`, `test_a_dict_subclass_that_overrides_items_is_read_through_items`, `test_a_plain_dict_is_read_as_it_is`; the change against 0.2.0 is listed under Fixed in the CHANGELOG and in the GUIDE upgrade notes |
+| F1-M12 (e): no contract pinned parameter equality against non-mappings | e | `test_parameters_never_equal_a_non_mapping` (`None`, `5`, `"x"`, `["x"]`, a list of pairs, `bytes`, `object()`; `==` and `!=` in both orders give `False` and `True`, never raise) |
+
 ### Disputed findings
 
-None in rounds 1, 2 and 3.
+None in rounds 1 to 4.

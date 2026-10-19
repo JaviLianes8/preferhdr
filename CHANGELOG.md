@@ -57,6 +57,10 @@ command line.
 - Parameters given as a mapping that cannot be read (iterating it yields a key its own
   lookup rejects, or its storage is missing) raise `TypeError`; 0.2.0 leaked the
   `KeyError` or `AttributeError` from inside the mapping.
+- Parameters given as a `dict` subclass are read through its own iteration and lookups
+  (or its own `items()` when it overrides that), as any other mapping is; 0.2.0 read the
+  `dict` storage directly, so it accepted keys the subclass's lookup rejects and wrote
+  stored values in place of the values the lookup gives. A plain `dict` reads as before.
 - `str(preference)`, and so `build`, write a preference in time linear in its number of
   parameters; 0.2.0 took quadratic time, about 20 seconds for 1.6 million parameters.
 

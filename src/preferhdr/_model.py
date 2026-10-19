@@ -122,6 +122,13 @@ def _pairs(source: Mapping[str, str | None]) -> list[tuple[str, str | None]]:
     if type(raw) is dict and all(getattr(type(source), n) is getattr(Params, n) for n in _LOOKUPS):
         return list(raw.items())
     try:
+        # dict's own items() reads the storage and skips the lookups a subclass overrides.
+        if type(source) is not dict and isinstance(source, dict) and _builtin(source, "items"):
+            return [(name, source[name]) for name in source]
         return list(source.items())
     except (AttributeError, KeyError) as error:
         raise TypeError(f"params could not be read as a mapping ({type_name(error)})") from None
+
+
+def _builtin(source: object, method: str) -> bool:
+    return isinstance(getattr(type(source), method), type(dict.items))

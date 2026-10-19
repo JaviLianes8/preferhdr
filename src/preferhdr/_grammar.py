@@ -19,7 +19,7 @@ def show(text: str) -> str:
 def type_name(value: object) -> str:
     """The name of value's type for a message, cut like ``show`` cuts text."""
     name = str(type(value).__name__)
-    return name if len(name) <= SHOWN else name[:SHOWN] + "..."
+    return name if len(name) <= SHOWN else f"{name[:SHOWN]}... ({len(name)} characters)"
 
 
 def exact(text: str) -> str:
