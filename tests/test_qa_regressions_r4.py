@@ -49,7 +49,7 @@ class OrderedShowsOther(OrderedDict[str, Any]):
 
 
 def test_a_dict_subclass_whose_lookup_rejects_its_keys_is_a_type_error() -> None:
-    with pytest.raises(TypeError, match="params could not be read"):
+    with pytest.raises(TypeError, match=r"^params could not be read as a mapping \(KeyError\)$"):
         Preference("x", None, RejectsLookups(a="1"))
 
 

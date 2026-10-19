@@ -81,11 +81,16 @@ def test_a_params_subclass_is_written_from_what_it_shows() -> None:
     assert str(Preference("a", None, View())) == "a; other=2"
 
 
-@pytest.mark.parametrize("params", [ListStore, NoStore])
-def test_a_params_subclass_that_cannot_be_read_is_a_type_error(params: type[Params]) -> None:
-    with pytest.raises(TypeError, match="params could not be read"):
+@pytest.mark.parametrize(
+    ("params", "error"), [(ListStore, "KeyError"), (NoStore, "AttributeError")]
+)
+def test_a_params_subclass_that_cannot_be_read_is_a_type_error(
+    params: type[Params], error: str
+) -> None:
+    expected = rf"^params could not be read as a mapping \({error}\)$"
+    with pytest.raises(TypeError, match=expected):
         Preference("a", None, params())
-    with pytest.raises(TypeError, match="params could not be read"):
+    with pytest.raises(TypeError, match=expected):
         build([SkipsChecks("a", None, params())])
 
 
