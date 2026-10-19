@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 and 2 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1, 2 and 3 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -243,6 +243,29 @@ Gates on the round 2 fix, on Elena's PC (the working tree packed as committed, C
 `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` each exit 0
 (375 passed, 7 opt-in skips).
 
+### Round 3 (on a0898f7)
+
+Lens c confirmed F4 fixed (and F2, F3 still pass) on 3.11.5, 3.13 and 3.14.2; lens e
+confirmed its five round 2 survivors killed and ran 27 new probes on the code changed in
+round 2 (21 killed; of the 6 survivors Q2 is equivalent, the other five are below). Every finding is fixed in
+6ca8123, which adds `tests/test_qa_regressions_r3.py`; none is disputed. The F5 and F6
+tests failed on a0898f7; the mutation tests fail on the reported mutants (P8, P9, B10,
+B11 and B4 applied one at a time to the fix: each is killed by the tests named below).
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| F5 (c): the raw-storage shortcut in the parameter mapping ignored the mapping a subclass shows, so a subclass that never filled the storage raised `AttributeError`, one overriding `__iter__` and `__getitem__` was written from hidden storage, and one with non-dict storage raised `AttributeError` | c | the storage is read directly only when it is a plain `dict` in the instance and the subclass overrides none of `items`, `__iter__` and `__getitem__`; otherwise the mapping is read through `items()`, and a `KeyError` or `AttributeError` raised while reading it becomes `TypeError` ("params could not be read as a mapping"). Tests: `test_a_params_subclass_that_never_fills_its_storage_is_read_as_a_mapping`, `test_a_params_subclass_is_written_from_what_it_shows`, `test_a_params_subclass_that_cannot_be_read_is_a_type_error`; listed under Fixed in the CHANGELOG and in the GUIDE upgrade notes |
+| F6 (c): `str(preference)`, and so `build`, took quadratic time in the number of parameters | c | the parts are collected in a list and joined once; `test_a_preference_with_many_parameters_is_written_in_linear_time` (100k against 400k parameters, ratio 11.7 on a0898f7, bound 9); listed under Fixed in the CHANGELOG and in the GUIDE upgrade notes (0.2.0 had the same loop) |
+| R3-P8 (e): skipping the value check on raw storage survived | e | `test_values_in_the_raw_storage_of_a_params_subclass_are_checked` (`Preference` and `build`) |
+| R3-P9 (e): skipping the repeat check on raw storage survived | e | `test_repeated_names_in_the_raw_storage_of_a_params_subclass_are_rejected` |
+| R3-B10 and B11 (e): moving the repeat check in `build` above the subclass rebuild, or adding a raw `str.lower` repeat check, survived | e | `test_build_rejects_a_repeat_whichever_spelling_comes_first` (both orders), `test_build_checks_a_preference_subclass_before_looking_for_repeats` (U+212A gives "is not a token") |
+| R3-B4 (e): rebuilding with `dict(pref.params)` survived | e | `test_build_writes_the_params_subclass_of_a_preference_subclass` (raw storage and an `items()` override inside a check-skipping `Preference` subclass), plus the `TypeError` test above through `build` |
+
+Gates on 6ca8123, on Elena's PC (`git archive` of the commit plus the fetched sources,
+fresh venv, CPython 3.14.2): `ruff format --check .`, `ruff check .`, `mypy --strict src`,
+`mypy --strict src tests` and `pytest --timeout=300` each exit 0 (385 passed, 7 opt-in
+skips).
+
 ### Disputed findings
 
-None in rounds 1 and 2.
+None in rounds 1, 2 and 3.
