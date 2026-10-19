@@ -157,7 +157,8 @@ tens of thousands of generated inputs. The differences are:
 - `build` writes a `Preference` subclass from its checked token, value and parameters,
   never through an overridden `__str__`.
 - Parameters given as a mapping that cannot be read raise `TypeError` (0.2.0 leaked the
-  `KeyError` or `AttributeError` raised inside the mapping).
+  `KeyError` or `AttributeError` raised inside the mapping). Any other error raised
+  inside the mapping (an `IndexError` or `ValueError`, say) propagates unchanged.
 - A `dict` subclass given as parameters is read through its own iteration and lookups
   (or its own `items()` when it overrides that); 0.2.0 read the `dict` storage directly.
 - A preference with many parameters is written in linear time.

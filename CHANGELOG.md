@@ -56,7 +56,8 @@ command line.
   inherited storage directly only when the subclass overrides none of them.
 - Parameters given as a mapping that cannot be read (iterating it yields a key its own
   lookup rejects, or its storage is missing) raise `TypeError`; 0.2.0 leaked the
-  `KeyError` or `AttributeError` from inside the mapping.
+  `KeyError` or `AttributeError` from inside the mapping. Any other error raised inside
+  the mapping propagates unchanged, as in 0.2.0.
 - Parameters given as a `dict` subclass are read through its own iteration and lookups
   (or its own `items()` when it overrides that), as any other mapping is; 0.2.0 read the
   `dict` storage directly, so it accepted keys the subclass's lookup rejects and wrote
