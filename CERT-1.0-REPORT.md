@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 to 5 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1 to 7 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -341,6 +341,26 @@ Gates on aa1f789, on this PC (CPython 3.13.2): `ruff format --check .`, `ruff ch
 `mypy --strict src`, `mypy --strict src tests` and `pytest --timeout=300` each exit 0
 (420 tests collected: 414 passed, 6 opt-in skips without the fetched sources).
 
+### Round 7 (on 0f24e81)
+
+Lens e confirmed the two round 6 findings fixed (each earlier mutant, applied alone, fails
+its new test) and swept 10 new mutants: 8 killed, 2 surviving. Both survivors are fixed
+below by contracts; none is disputed and no behaviour changed. GUIDE and CHANGELOG now say
+that an error other than `KeyError` or `AttributeError` raised inside a parameter mapping
+propagates unchanged, as it did in 0.2.0. The new tests pass on 0f24e81, and each of the
+two mutants, applied alone, fails the test named for it.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| F10-Q3: folding the other mapping's keys with `str.lower` instead of the library's own folding in the parameter mapping's `__eq__` survived (a `str` subclass overriding `lower()` compared unequal) | e | `test_parameters_equal_a_mapping_keyed_by_a_str_subclass_with_the_same_text` (a key whose subclass overrides `lower()` and `__str__`: `==` is `True`, `!=` is `False`, and parameters built from that mapping are equal too) |
+| F11-Q8: wrapping every `LookupError` (not just `KeyError`) from a parameter mapping in "params could not be read as a mapping" survived | e | `test_other_errors_from_a_params_mapping_propagate_unchanged` (`IndexError`, a bare `LookupError`, `ValueError` and `RuntimeError` from the mapping's lookup propagate as the same object and type) |
+
+The tests are in `tests/test_qa_regressions_r7.py`, commit f51990d.
+
+Gates on f51990d, on this PC (CPython 3.13.2): `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest --timeout=300` each exit 0
+(425 tests collected: 419 passed, 6 opt-in skips without the fetched sources).
+
 ### Disputed findings
 
-None in rounds 1 to 6.
+None in rounds 1 to 7.
