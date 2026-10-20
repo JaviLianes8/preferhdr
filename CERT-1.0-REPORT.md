@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 to 8 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1 to 9 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -387,6 +387,31 @@ Gates on f8dedba: on Elena's PC (CPython 3.14, a fresh clone from GitHub and a f
 `pytest --timeout=300` each exit 0; on this PC (CPython 3.13.2) `pytest --timeout=300` gives
 424 passed and 7 skips (the opt-in tests without the fetched sources).
 
+### Round 9 (on 2f50827)
+
+Lens e confirmed F12, F13 and F14 fixed (their mutants fail the round 8 tests) and swept
+35 new mutants on the reworked parameter equality and `_entries`: 27 killed, 1 equivalent
+(building the compared dict from the entries in reverse: once the fold check passes the
+keys are distinct and dict equality ignores order), 7 surviving. All seven were missing
+pins, not wrong behaviour, so no code changed; each is fixed by a test below and none is
+disputed. For G2 the contract was decided as the current behaviour: an error raised while
+reading the other mapping's values propagates unchanged, as the standard `Mapping`
+equality lets it through (checked: `Mapping.__eq__` of two such mappings raises the inner
+`KeyError`); the CHANGELOG now says so. Each of the seven mutants, applied alone to
+2f50827, fails at least one new test; the new tests pass on 2f50827.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| G1-S2-S5: the fold-duplicate check in parameter equality was unpinned (the only test compared against one parameter, so the count check answered first) | e | `test_two_keys_that_fold_together_differ_from_as_many_parameters` (two parameters against two keys that fold together, whose values raise if read) |
+| G2-S8: what equality does when the other mapping's lookup fails was unpinned | e | contract: the error propagates unchanged, written in the CHANGELOG; `test_comparing_with_an_unreadable_mapping_lets_its_error_through` (`==` and `!=` raise `KeyError('inner')`) |
+| G3-S21: a parameter mapping subclass whose storage is a `dict` subclass was unpinned | e | `test_storage_held_in_a_dict_subclass_is_read_through_the_lookups` (storage holds an upper-case key the lookup cannot find: `TypeError`) |
+| G4-S24: a subclass overriding only `__iter__` was unpinned | e | `test_a_subclass_overriding_only_iteration_is_read_through_it` |
+| G5-S25: a subclass overriding only `__getitem__` was unpinned | e | `test_a_subclass_overriding_only_lookup_is_read_through_it` |
+| G6-S20: the storage branch taking its keys from the storage was unpinned | e | `test_inherited_storage_is_read_for_both_its_keys_and_its_values` (a class property shadows the instance storage) |
+| G7-S35: the order of parameters read through an overridden `items()` was unpinned | e | `test_parameters_keep_the_order_of_an_overridden_items` (a mapping and a `dict` subclass whose `items()` order differs from their iteration or storage order) |
+
+The tests are in `tests/test_qa_regressions_r9.py`, commit 5526a0c.
+
 ### Disputed findings
 
-None in rounds 1 to 8.
+None in rounds 1 to 9.
