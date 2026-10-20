@@ -15,7 +15,7 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 to 7 findings fixed, re-verification pending
+- [ ] Five QA lenses (item 19): round 1 to 8 findings fixed, re-verification pending
 - [ ] Independent reviewer (item 16)
 - [ ] Merge and publish (item 17), left to the maintainer
 
@@ -361,6 +361,32 @@ Gates on f51990d, on this PC (CPython 3.13.2): `ruff format --check .`, `ruff ch
 `mypy --strict src`, `mypy --strict src tests` and `pytest --timeout=300` each exit 0
 (425 tests collected: 419 passed, 6 opt-in skips without the fetched sources).
 
+### Round 8 (on be15f63)
+
+Lens e confirmed the two round 7 findings fixed (each earlier mutant, applied alone, fails
+its new test) and swept 10 new mutants on the parameter mapping's `__eq__` and `_pairs`:
+7 killed, 3 surviving. All three are fixed below; none is disputed. Two were real
+disagreements between equality and construction, so equality changed and the CHANGELOG
+says so: comparing parameters with a mapping now reads that mapping through the same
+helper construction uses (`_entries`, one deferred lookup per listed key), so
+`params == m` agrees with `Preference(..., m).params == params`. It still judges the keys
+before reading any value, and now also answers `False` without reading values when the
+number of keys differs. The new tests fail on be15f63 (except the pin of F14, which holds
+there), and each of the three mutants, re-applied to the new code, fails them.
+
+| Finding | Lens | Fix |
+| --- | --- | --- |
+| F12-R2: `__eq__` read a `dict` subclass through `items()` (its storage) while construction reads it through its own lookups, so `params == d` and `Preference(..., d).params == params` disagreed | e | equality reads the other mapping as construction does; `test_parameters_read_a_dict_subclass_the_way_construction_reads_it` (a `dict` subclass whose lookup disagrees with its storage: both comparisons are `False`) |
+| F13-R4: `__eq__` checked the folded keys against `len(other)` while construction counts the keys the mapping lists, so a mapping whose `len()` disagrees with its iteration compared unequal to parameters built from it | e | equality counts the listed keys; `test_parameters_count_the_keys_a_mapping_lists_not_its_length` (iterates one key, `len()` says 2: both comparisons are `True`), `test_parameters_differ_from_a_mapping_with_another_number_of_keys` (no value is read) |
+| F14-R6: chaining the inner error of "params could not be read as a mapping" survived | e | `test_an_unreadable_params_mapping_hides_the_inner_error` (exact message, `__cause__` is `None`, `__suppress_context__` is `True`) |
+
+The tests are in `tests/test_qa_regressions_r8.py`, commit f8dedba.
+
+Gates on f8dedba: on Elena's PC (CPython 3.14, a fresh clone from GitHub and a fresh venv)
+`ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and
+`pytest --timeout=300` each exit 0; on this PC (CPython 3.13.2) `pytest --timeout=300` gives
+424 passed and 7 skips (the opt-in tests without the fetched sources).
+
 ### Disputed findings
 
-None in rounds 1 to 7.
+None in rounds 1 to 8.
