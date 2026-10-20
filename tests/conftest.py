@@ -22,10 +22,10 @@ def read_upstream(name: str) -> str:
     tests skip while a file is absent and fail if it differs from the manifest.
     """
     manifest = upstream_manifest()
-    path: Path = UPSTREAM / manifest["folder"] / name
+    path: Path = UPSTREAM / name
     if not path.is_file():
         pytest.skip(f"{name} is not fetched; run python scripts/fetch_upstream.py")
     body = path.read_bytes()
-    entry = manifest["files"][name]
+    entry = manifest[name]
     assert hashlib.sha256(body).hexdigest() == entry["sha256"], f"{name} differs from MANIFEST"
     return body.decode("utf-8")

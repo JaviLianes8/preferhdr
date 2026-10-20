@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ._errors import PreferError
-from ._grammar import is_token
+from ._grammar import exact, is_token, show, type_name
 
 
 def vary(current: str | Iterable[str] | None = None) -> str:
@@ -14,7 +14,12 @@ def vary(current: str | Iterable[str] | None = None) -> str:
     A server that may apply a preference changing what a cache can reuse must list
     ``Prefer`` in ``Vary``, whether or not this request sent one. ``current`` is the
     existing value (or several, one per header line). A list holding ``*`` already covers
-    every field and comes back as ``*``. Members must be field names (tokens).
+    every field and comes back as ``*``. Members must be field names (tokens), else
+    ``PreferError``; a value that is not a ``str`` raises ``TypeError``. Members are kept
+    as written, in order, and ``Prefer`` is found in any case.
+
+    >>> vary(), vary("Accept-Encoding"), vary(["Accept", "prefer"]), vary("*")
+    ('Prefer', 'Accept-Encoding, Prefer', 'Accept, prefer', '*')
     """
     if isinstance(current, (bytes, bytearray)):
         raise TypeError("Vary values must be str, not bytes")
@@ -22,13 +27,13 @@ def vary(current: str | Iterable[str] | None = None) -> str:
     members: list[str] = []
     for field in fields:
         if not isinstance(field, str):
-            raise TypeError(f"Vary values must be str, not {type(field).__name__}")
-        for raw in field.split(","):
+            raise TypeError(f"Vary values must be str, not {type_name(field)}")
+        for raw in exact(field).split(","):
             member = raw.strip(" \t")
             if not member:
                 continue
             if member != "*" and not is_token(member):
-                raise PreferError(f"{member!r} is not a field name")
+                raise PreferError(f"{show(member)} is not a field name")
             members.append(member)
     if "*" in members:
         return "*"

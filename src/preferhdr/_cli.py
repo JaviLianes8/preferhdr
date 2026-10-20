@@ -5,14 +5,41 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
 import re
 import sys
 from collections.abc import Sequence
+from typing import NoReturn
 
 from ._errors import PreferError
 from ._parse import parse
 
 _HEADER_LINE = re.compile(r"^([!#$%&'*+\-.^_`|~0-9A-Za-z]+):(.*)$")
+_USAGE_SHOWN = 200
+
+
+class _Parser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        # argparse quotes unknown arguments whole; a huge one must not flood the terminal.
+        if len(message) > _USAGE_SHOWN:
+            message = message[:_USAGE_SHOWN] + "..."
+        super().error(message)
+
+
+def _write(text: str) -> bool:
+    """Write to stdout; when its reader has gone, silence it and report False."""
+    try:
+        sys.stdout.write(text)
+        sys.stdout.flush()
+    except OSError:
+        # A closed pipe (EPIPE, or EINVAL on Windows): later flushes go to the null device.
+        try:
+            null = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(null, sys.stdout.fileno())
+        except (OSError, ValueError, io.UnsupportedOperation):
+            pass
+        return False
+    return True
 
 
 def _from_lines(text: str, applied: bool) -> list[str]:
@@ -21,22 +48,27 @@ def _from_lines(text: str, applied: bool) -> list[str]:
     lines = [line.rstrip("\r") for line in text.split("\n")]
     if not any(map(_HEADER_LINE.match, lines)):
         return [line for line in lines if line.strip(" \t")]
-    fields: list[list[str]] = []
+    # Each field collects its pieces and is joined once, so folded lines cost linear time.
+    fields: list[tuple[str, list[str]]] = []
     for line in lines:
         match = _HEADER_LINE.match(line)
         if match:
-            fields.append([match.group(1).lower(), match.group(2).strip(" \t")])
+            fields.append((match.group(1).lower(), [match.group(2).strip(" \t")]))
         elif fields and line[:1] in (" ", "\t"):
             # Obsolete line folding: RFC 9112 section 5.2 lets a recipient replace it by SP.
-            fields[-1][1] = (fields[-1][1] + " " + line.strip(" \t")).strip(" ")
+            fields[-1][1].append(line.strip(" \t"))
         elif fields and not line:
             break  # the empty line ends the header section; a body follows
-    return [value for name, value in fields if name == wanted]
+    return [" ".join(filter(None, pieces)) for name, pieces in fields if name == wanted]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the checker; returns 0 when every value is valid, 1 when one is not."""
-    cli = argparse.ArgumentParser(
+    """Run the checker; returns 0 when every value is valid, 1 when one is not.
+
+    It also returns 1 when no value is found or the reader of its output goes away;
+    a usage error exits 2.
+    """
+    cli = _Parser(
         prog="preferhdr",
         description="Parse Prefer (or Preference-Applied) header values and check them "
         "against the RFC 7240 grammar. Without VALUE, read header lines or values on stdin.",
@@ -64,13 +96,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     prefs = parse(values, applied=args.applied)
     if args.json:
         rows = [{"token": p.token, "value": p.value, "params": dict(p.params)} for p in prefs]
-        print(json.dumps(rows, indent=2))
+        text = json.dumps(rows, indent=2) + "\n"
     else:
-        for pref in prefs:
-            print(pref)
+        text = "".join(f"{pref}\n" for pref in prefs)
+    if not _write(text):
+        return 1
     if problem is None:
         return 0
-    sys.stdout.flush()
     print(f"invalid: {problem}", file=sys.stderr)
     return 1
 

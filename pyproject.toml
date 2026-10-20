@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "preferhdr"
-version = "0.2.0"
+version = "1.0.0"
 description = "Parse and build HTTP Prefer and Preference-Applied headers per RFC 7240, typed and zero-dependency"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
 keywords = ["prefer", "preference-applied", "rfc7240", "http", "header", "parser", "vary"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -30,14 +30,14 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine"]
+dev = ["ruff", "mypy", "pytest", "pytest-timeout", "build", "twine"]
 
 [project.scripts]
 preferhdr = "preferhdr._cli:main"
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/preferhdr"
+Source = "https://github.com/JaviLianes8/preferhdr"
 Issues = "https://github.com/JaviLianes8/preferhdr/issues"
 Changelog = "https://github.com/JaviLianes8/preferhdr/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
@@ -48,7 +48,12 @@ packages = ["src/preferhdr"]
 
 [tool.hatch.build.targets.sdist]
 # Third-party files are fetched locally and never shipped; only their manifest is.
-exclude = ["IMPROVEMENTS-round*.md", "tests/upstream/rfc"]
+exclude = [
+    "IMPROVEMENTS-round*.md",
+    "CERT-1.0-*.md",
+    "tests/upstream/*",
+    "!tests/upstream/MANIFEST.json",
+]
 
 [tool.ruff]
 line-length = 100
@@ -63,6 +68,7 @@ strict = true
 mypy_path = "src"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src", "tests"]
 pythonpath = ["src"]
-addopts = "-q"
+addopts = "-q --doctest-modules"
+timeout = 300

@@ -78,13 +78,25 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     assert "rfc7240.txt" not in listing
     assert "tests/test_rfc_examples.py" in listing
     assert "scripts/fetch_upstream.py" in listing
+    for shipped in ("LICENSE", "GUIDE.md", "CHANGELOG.md", "scripts/prefer_oracle.js"):
+        assert f"preferhdr-1.0.0/{shipped}" in listing, shipped
+    assert "node_modules" not in listing and "CERT-1.0" not in listing
+    assert any(name.endswith("licenses/LICENSE") for name in names)
+    metadata = next(name for name in names if name.endswith("METADATA"))
+    text = zipfile.ZipFile(wheel).read(metadata).decode("utf-8")
+    assert "Classifier: Development Status :: 5 - Production/Stable" in text
+    assert "Requires-Dist" not in text.split("Provides-Extra")[0]
 
     env_dir = tmp_path / "venv"
     venv.create(env_dir, with_pip=True)
     bindir = env_dir / ("Scripts" if sys.platform == "win32" else "bin")
     python = bindir / "python"
+    if os.environ.get("PREFERHDR_E2E_PYPI") == "1":
+        _upgrade_from_pypi(python, tmp_path)
     installed = _run(python, "-m", "pip", "install", "-q", wheel)
     assert installed.returncode == 0, installed.stderr
+    shown = _run(python, "-m", "pip", "show", "preferhdr").stdout
+    assert "Version: 1.0.0" in shown
 
     # Run from an empty folder so the source tree cannot shadow the install.
     work = tmp_path / "work"
@@ -102,3 +114,22 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     module = _run(python, "-I", "-m", "preferhdr", "--json", "return=minimal", cwd=work)
     assert module.returncode == 0, module.stderr
     assert '"value": "minimal"' in module.stdout
+
+
+OLD_PROGRAM = """
+import preferhdr
+assert preferhdr.__version__ == "0.2.0"
+prefs = preferhdr.parse(["respond-async, wait=10", "return=minimal"])
+print(preferhdr.build(prefs))
+"""
+
+
+def _upgrade_from_pypi(python: Path, tmp_path: Path) -> None:
+    """Install the PyPI release first, so the wheel below upgrades it in place."""
+    work = tmp_path / "old"
+    work.mkdir()
+    installed = _run(python, "-m", "pip", "install", "-q", "preferhdr==0.2.0")
+    assert installed.returncode == 0, installed.stderr
+    old = _run(python, "-I", "-c", OLD_PROGRAM, cwd=work)
+    assert old.returncode == 0, old.stderr
+    assert old.stdout.strip() == "respond-async, wait=10, return=minimal"

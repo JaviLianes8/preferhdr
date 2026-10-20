@@ -1,5 +1,7 @@
 # preferhdr
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Parse, validate and build the HTTP `Prefer` and `Preference-Applied` headers (RFC 7240),
 typed and zero-dependency.
 
@@ -138,7 +140,10 @@ invalid: whitespace before '=' at position 4 of field 0
   for the values the RFC defines (values are case-sensitive).
 - `wait` must be ASCII digits; a value longer than 100 digits reads as no wait at all
   (it is an upper bound, and no bound means the same thing).
-- An unterminated quoted string runs to the end of its field value.
+- An unterminated quoted string runs to the end of its field value, so the tolerant
+  parser drops what it belongs to and whatever follows it in that value: the member, or
+  only the parameter when the string is a parameter value (`a, b; p="q, c` keeps `a`
+  and `b`).
 - Values may hold obs-text as opaque data, U+00A0 to U+00FF. The C1 controls (U+0080 to
   U+009F) are rejected although RFC 9110 allows them: U+0085 is a line break to Python's
   `str.splitlines`, and they carry no text. Anything above U+00FF is rejected too.
@@ -152,15 +157,38 @@ invalid: whitespace before '=' at position 4 of field 0
 RFC 7240 is small but fiddly: optional values, quoted strings holding commas and
 semicolons, case-insensitive names, several header lines, first-wins duplicates, and a
 grammar fixed by errata. Hand-rolled splitting breaks on quoted values and lets CR LF
-through into responses. This library is one small, typed, zero-dependency codec for both
-directions, with a strict mode for tests and a tolerant one for servers.
+through into responses.
+
+Python has no parser for it. The standard library's `urllib.request.parse_http_list`
+and `email.message.Message.get_params` can be combined to split such a value, but they
+know nothing of RFC 7240: they keep empty and repeated members, fold the case of some
+names and not others, and misread a quoted value holding an escaped `"`. The PyPI
+packages with "prefer" in their name (checked 2026-10-19) are about application
+settings, not this header, and Werkzeug 3.1.9, Django 6.1.2 and Starlette 1.9.0 do not
+read it. In JavaScript, `parse-prefer-header` 1.0.0 reads it into camel-case keys, drops
+the value of a quoted string holding an escaped `"` and has no strict mode or builder.
+The test suite runs both against this library and asserts every difference.
+
+`preferhdr` is one small, typed, zero-dependency codec for both directions: a tolerant
+reader for servers, a strict checker for tests and clients, a builder that cannot split
+a header, and typed answers for the registered preferences.
+
+## Ground truth
+
+The strict grammar, the registered preferences and the errata are read from the RFC
+text, the RFC Editor errata page and the IANA registry, fetched by
+`scripts/fetch_upstream.py` and checked against the hashes in `tests/upstream/MANIFEST.json`
+(the files are not shipped). The [GUIDE](https://github.com/JaviLianes8/preferhdr/blob/main/GUIDE.md)
+gives every rule the parser follows.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/preferhdr/blob/main/LICENSE).
 
 ## Links
 
+- Guide: https://github.com/JaviLianes8/preferhdr/blob/main/GUIDE.md
+- Changelog: https://github.com/JaviLianes8/preferhdr/blob/main/CHANGELOG.md
 - Website: https://lianes8studio.com
 - GitHub: https://github.com/JaviLianes8
 - LinkedIn: https://www.linkedin.com/in/jlianes/

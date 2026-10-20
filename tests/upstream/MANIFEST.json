@@ -1,14 +1,47 @@
 {
-  "title": "RFC 7240, Prefer Header for HTTP (plain text)",
-  "base_url": "https://www.rfc-editor.org/rfc/",
-  "folder": "rfc",
-  "revision": "RFC 7240, June 2014 (published RFCs do not change)",
-  "licence": "IETF Trust Legal Provisions (BCP 78), https://trustee.ietf.org/license-info",
-  "fetched": "2026-10-13",
-  "files": {
-    "rfc7240.txt": {
-      "size": 32796,
-      "sha256": "2cde510338babf6ad937e0bcb31989bb9a664ab1567d4b41cb143fe9740ae16e"
-    }
+  "rfc7240.txt": {
+    "title": "RFC 7240, Prefer Header for HTTP",
+    "url": "https://www.rfc-editor.org/rfc/rfc7240.txt",
+    "revision": "published RFC (immutable)",
+    "licence": "IETF Trust Legal Provisions, https://trustee.ietf.org/license-info",
+    "fetched": "2026-10-19",
+    "size": 32796,
+    "sha256": "2cde510338babf6ad937e0bcb31989bb9a664ab1567d4b41cb143fe9740ae16e"
+  },
+  "rfc7240-errata.html": {
+    "title": "RFC 7240 errata list (4316 and 4439 verified, 4625, 4955 and 5282 reported, 4317 rejected)",
+    "url": "https://www.rfc-editor.org/errata/rfc7240",
+    "revision": "errata page as fetched",
+    "licence": "IETF Trust Legal Provisions, https://trustee.ietf.org/license-info",
+    "fetched": "2026-10-19",
+    "size": 37349,
+    "sha256": "9126864add9a1a255b3f9ce6769b8ce57d7330b7a218fec696c16528215f5c54"
+  },
+  "rfc8144.txt": {
+    "title": "RFC 8144, Use of the Prefer Header Field in WebDAV",
+    "url": "https://www.rfc-editor.org/rfc/rfc8144.txt",
+    "revision": "published RFC (immutable)",
+    "licence": "IETF Trust Legal Provisions, https://trustee.ietf.org/license-info",
+    "fetched": "2026-10-19",
+    "size": 47134,
+    "sha256": "94783f18336fee8fc830af3e930180aaa3a3dce597fe3eb8b0d4561abb607e0a"
+  },
+  "rfc9110.txt": {
+    "title": "RFC 9110, HTTP Semantics",
+    "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+    "revision": "published RFC (immutable)",
+    "licence": "IETF Trust Legal Provisions, https://trustee.ietf.org/license-info",
+    "fetched": "2026-10-19",
+    "size": 502941,
+    "sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a"
+  },
+  "iana-preferences.csv": {
+    "title": "IANA HTTP Preferences registry",
+    "url": "https://www.iana.org/assignments/http-parameters/preferences.csv",
+    "revision": "registry as fetched",
+    "licence": "IANA registries are public domain data, https://www.iana.org/help/licensing-terms",
+    "fetched": "2026-10-19",
+    "size": 4121,
+    "sha256": "6c08f7866738ed7fda0a82cd77e9d4b34e9495cdce624cf15e91b1d4135b00a4"
   }
 }
