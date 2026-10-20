@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, field
+from functools import partial
 
 from ._errors import PreferError
 from ._grammar import ascii_lower, check_name, check_value, quote, show, type_name
@@ -38,10 +39,13 @@ class Params(Mapping[str, "str | None"]):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Mapping):
             return NotImplemented
-        keys = [ascii_lower(key) for key in other]
-        if None in keys or len(set(keys)) != len(other):
+        # Read other as construction would, but look at its keys before any value: a key no
+        # parameter can have, or two keys that fold together, already decide the answer.
+        entries = [(ascii_lower(name), look) for name, look in _entries(other)]
+        keys = {key for key, _ in entries}
+        if None in keys or len(keys) != len(entries) or len(entries) != len(self._items):
             return False
-        return self._items == {ascii_lower(key): value for key, value in other.items()}
+        return self._items == {key: look() for key, look in entries}
 
     def __hash__(self) -> int:
         return hash(frozenset(self._items.items()))
@@ -112,22 +116,38 @@ def _pair(name: str, value: str | None) -> str:
 
 
 _LOOKUPS = ("items", "__iter__", "__getitem__")
+_Entry = tuple[str, Callable[[], "str | None"]]
 
 
 def _pairs(source: Mapping[str, str | None]) -> list[tuple[str, str | None]]:
+    try:
+        return [(name, look()) for name, look in _entries(source)]
+    except (AttributeError, KeyError) as error:
+        raise TypeError(f"params could not be read as a mapping ({type_name(error)})") from None
+
+
+def _entries(source: Mapping[str, str | None]) -> list[_Entry]:
+    # Each key with a deferred read of its value, so equality can judge the keys first.
     # A subclass of Params may fill its storage without checks, so its own lookups miss the
     # keys it iterates: read that storage when it is a plain dict and the subclass keeps
     # every lookup of Params. Anything else is read as the mapping it shows.
     raw = getattr(source, "__dict__", {}).get("_items")
     if type(raw) is dict and all(getattr(type(source), n) is getattr(Params, n) for n in _LOOKUPS):
-        return list(raw.items())
-    try:
-        # dict's own items() reads the storage and skips the lookups a subclass overrides.
-        if type(source) is not dict and isinstance(source, dict) and _builtin(source, "items"):
-            return [(name, source[name]) for name in source]
-        return list(source.items())
-    except (AttributeError, KeyError) as error:
-        raise TypeError(f"params could not be read as a mapping ({type_name(error)})") from None
+        return [(name, partial(_lookup, raw, name)) for name in raw]
+    # dict's own items() reads the storage and skips the lookups a subclass overrides, and
+    # the items() of Mapping reads through iteration and lookups, so both are read that way.
+    by_lookup = isinstance(source, dict) and _builtin(source, "items")
+    if by_lookup or type(source).items is Mapping.items:
+        return [(name, partial(_lookup, source, name)) for name in source]
+    return [(name, partial(_given, value)) for name, value in source.items()]
+
+
+def _lookup(source: Mapping[str, str | None], name: str) -> str | None:
+    return source[name]
+
+
+def _given(value: str | None) -> str | None:
+    return value
 
 
 def _builtin(source: object, method: str) -> bool:

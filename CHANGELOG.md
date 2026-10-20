@@ -62,6 +62,11 @@ command line.
   (or its own `items()` when it overrides that), as any other mapping is; 0.2.0 read the
   `dict` storage directly, so it accepted keys the subclass's lookup rejects and wrote
   stored values in place of the values the lookup gives. A plain `dict` reads as before.
+- Parameters compare with a mapping by reading it the way `Preference` reads `params`
+  (a `dict` subclass through its own lookups, any mapping through the keys it lists
+  rather than its `len()`), so `params == m` agrees with `Preference(..., m).params ==
+  params`. A mapping with a key no parameter can have, two keys that fold together or
+  another number of keys compares unequal without any of its values being read.
 - `str(preference)`, and so `build`, write a preference in time linear in its number of
   parameters; 0.2.0 took quadratic time, about 20 seconds for 1.6 million parameters.
 
