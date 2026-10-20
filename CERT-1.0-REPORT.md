@@ -15,8 +15,8 @@ Progress:
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] Author mutation round (item 18)
-- [ ] Five QA lenses (item 19): round 1 to 9 findings fixed, re-verification pending
-- [ ] Independent reviewer (item 16)
+- [x] Five QA lenses (item 19): round 1 to 9 findings fixed and re-verified, all five PASS
+- [x] Independent reviewer (item 16): every item PASS
 - [ ] Merge and publish (item 17), left to the maintainer
 
 ## Scorecard
@@ -32,16 +32,16 @@ Progress:
 | 7 | Real ground truth | PASS: five fetched sources with a hash manifest, a grammar oracle compiled from their ABNF, the standard library, parse-prefer-header 1.0.0 run with Node.js, PyPI 0.2.0 |
 | 8 | Real e2e from the wheel | PASS: wheel installed in a fresh venv over PyPI 0.2.0 (upgrade in place), driven from an empty folder, CLI by subprocess |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2 free-threaded, last run at c418230 |
+| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2 free-threaded at c418230; CPython 3.10.22, 3.11.17, 3.12.15, 3.13.2 and 3.14.8 free-threaded at 1c9ce39 in the review |
 | 11 | README and `twine check` | PASS: `twine check --strict` on wheel and sdist |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-19 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
 | 14 | sdist and wheel contents | PASS |
 | 15 | Gates each exit 0 | PASS: see Gates |
-| 16 | Independent reviewer | pending |
+| 16 | Independent reviewer | PASS: review r1 at 1c9ce39, every item PASS (see Independent review) |
 | 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 36 mutants, 34 killed, 1 equivalent, 1 survivor killed by a new contract |
-| 19 | Five independent QA lenses | pending |
+| 19 | Five independent QA lenses | PASS: a, b, c, d and e all PASS (see QA verdicts) |
 
 ## API review (item 1)
 
@@ -415,3 +415,54 @@ The tests are in `tests/test_qa_regressions_r9.py`, commit 5526a0c.
 ### Disputed findings
 
 None in rounds 1 to 9.
+
+### QA verdicts
+
+Each lens ran on its own copy, ran its probes rather than reading, and reported only to the
+maintainer. Evidence stays in the local certification folder (named below by its
+subfolder), outside the repository.
+
+| Lens | Rounds | Final verdict | Report and evidence | Commit |
+| --- | --- | --- | --- | --- |
+| a: API and docs | 2 | PASS | `lens-a-r2/probes-r3/probes.py` (verdict given in text) | 652c7c6 |
+| b: correctness and ground truth | 1 | PASS | `lens-b-r1/work2` (oracle, edge, diff, fuzz_21 and fuzz_22: 200,000 cases, 0 bad) | 5483f69 |
+| c: adversarial and robustness | 1 | PASS | `lens-c-r1` (scale-1M, fuzz-11 and fuzz-12: 150,000 iterations each, 0 failures, cli-out, probes2) | 5483f69 |
+| d: packaging and real e2e | 1 | PASS | `lens-d-r1/REPORT.md` | 5483f69 |
+| e: contract strength | 7 | PASS | `lens-e-r7/REPORT.md` | 1c9ce39 |
+
+Lens a confirmed A1 and A2 of round 4 fixed at 652c7c6 and swept 22 probes over the changed
+code (overridden `items()`, `__missing__`, `OrderedDict`, `defaultdict`, `Counter`,
+`UserDict`, pickling, `Params` subclasses): all behave as the CHANGELOG and GUIDE say.
+Lens c fuzzed 300,000 inputs in both header kinds on 3.14 and more on 3.11 and 3.13, timed
+29 adversarial shapes at 10k and 1M characters (linear), ran 62 odd-type probes on 3.11 and
+3.13 with identical output, and drove the command by subprocess with random bytes, huge
+arguments, 20 MB of input and a closed pipe. Rounds 8 and 9 changed parameter equality
+after lenses a and c last ran; the change is narrow, the CHANGELOG documents it, and lens e
+re-verified it at 1c9ce39.
+
+## Independent review (item 16)
+
+Review r1 at 1c9ce39 (release/1.0.0, PR #3), heavy runs on Elena's PC in a private folder.
+Every item PASS.
+
+| # | Result |
+| --- | --- |
+| 1 | PASS: six names, signatures and defaults kept; every change in CHANGELOG 1.0.0 "Changed"; `tests/test_contract_api.py` pins the API |
+| 2 | PASS: `__all__` equals the public `dir()`; README, GUIDE and CHANGELOG import nothing private |
+| 3 | PASS: every public name, method and property has a runnable example; doctests pass under pytest |
+| 4 | PASS: `mypy --strict src` (11 files) and `mypy --strict src tests` (44 files) exit 0; `py.typed` in the wheel; no `Any` in `src` |
+| 5 | PASS: `PreferError` carries message, position and field; 1M-character input gives messages of 57 to 85 characters |
+| 6 | PASS: contract tests plus behaviour tests for every name |
+| 7 | PASS: `fetch_upstream.py` re-run, all 5 sources match the manifest; Node.js and PyPI 0.2.0 oracles ran without skipping |
+| 8 | PASS: e2e with `PREFERHDR_E2E=1` and `PREFERHDR_E2E_PYPI=1`; a manual 3.10 venv upgraded 0.2.0 to the 1.0.0 wheel and ran the command |
+| 9 | PASS: `test_fuzz` and `test_hostile` pass; lens c evidence checked |
+| 10 | PASS: full suite on CPython 3.10.22, 3.11.17, 3.12.15, 3.13.2 and 3.14.8 free-threaded, no failure or error |
+| 11 | PASS: `twine check --strict` on wheel and sdist; the README renders; every link is absolute |
+| 12 | PASS: `## [1.0.0] - 2026-10-19` summarises the stable API |
+| 13 | PASS: 1.0.0, Production/Stable, 3.10 to 3.14 classifiers, MIT, project URLs, keywords, no dependencies |
+| 14 | PASS: wheel holds 11 modules, `py.typed`, LICENSE and the entry point; sdist holds the tracked files minus the certification notes |
+| 15 | PASS: format, lint, types and tests each exit 0 |
+| 16 | PASS: this review |
+| 17 | PASS up to merge: PR #3 open from `release/1.0.0`, history and tracked files clean, no em-dash, sources at most 200 lines; merge left to the maintainer |
+| 18 | PASS: the table above, plus 6 mutants of the review's own, all killed |
+| 19 | PASS: evidence for all five lenses is on disk |
